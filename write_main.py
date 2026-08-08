@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+content = """from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os, sys
@@ -28,3 +28,8 @@ def get_global_ranking():
         save_ranking(video["video_id"], rank, video["total_score"], video["velocity_score"], video["geo_score"], video["retention_score"], "youtube", "US")
         results.append({"rank": rank, "video_id": video["video_id"], "title": video["title"], "channel_name": video["channel_name"], "view_count": video["view_count"], "total_score": video["total_score"], "velocity_score": video["velocity_score"], "retention_score": video["retention_score"], "thumbnail_url": video["thumbnail_url"]})
     return results
+"""
+
+with open("main.py", "w") as f:
+    f.write(content)
+print("main.py written successfully")
