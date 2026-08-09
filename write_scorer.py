@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+content = '''from datetime import datetime, timezone
 
 
 def compute_score(video: dict, countries_present: list = None) -> dict:
@@ -76,3 +76,8 @@ if __name__ == "__main__":
     for v in videos[:5]:
         s = compute_score(v, countries_present=["US"])
         print(f"  {v['title'][:40]} Score: {s['total_score']}")
+'''
+
+with open("ranking/scorer.py", "w", encoding="utf-8") as f:
+    f.write(content)
+print("scorer.py written successfully")
