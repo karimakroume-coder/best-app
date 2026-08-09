@@ -6,6 +6,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from ranking.fetcher import fetch_trending
 from ranking.scorer import compute_score
 from database.client import save_video, save_ranking, get_client
+from auth.auth import create_access_token, get_token_from_header
+from pydantic import BaseModel
 from apscheduler.schedulers.background import BackgroundScheduler
 from ranking.scheduler import run_ranking_pipeline
 load_dotenv()
@@ -80,3 +82,44 @@ def get_video_history(video_id: str):
         .execute()
     )
     return response.data
+class AuthRequest(BaseModel):
+    email: str
+    password: str
+
+@app.post("/auth/register")
+def register(req: AuthRequest):
+    try:
+        client = get_client()
+        result = client.auth.sign_up({"email": req.email, "password": req.password})
+        user_id = result.user.id
+        client.table("users").insert({"user_id": user_id, "email": req.email, "username": req.email.split("@")[0], "discovery_score": 0, "badge_tier": "none", "fireflag_count": 0, "fireflags_remaining": 10}).execute()
+        token = create_access_token({"sub": user_id, "email": req.email})
+        return {"user_id": user_id, "access_token": token, "message": "User registered successfully"}
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))
+
+@app.post("/auth/login")
+def login(req: AuthRequest):
+    try:
+        client = get_client()
+        result = client.auth.sign_in_with_password({"email": req.email, "password": req.password})
+        user_id = result.user.id
+        token = create_access_token({"sub": user_id, "email": req.email})
+        return {"access_token": token, "message": "Login successful"}
+    except Exception as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+
+@app.get("/user/profile")
+def get_profile(authorization: str = None):
+    from fastapi import HTTPException, Header
+    payload = get_token_from_header(authorization)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    client = get_client()
+    user_id = payload.get("sub")
+    result = client.table("users").select("*").eq("user_id", user_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    return result.data[0]
