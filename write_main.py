@@ -116,8 +116,47 @@ def get_country_ranking(country_code: str):
 def get_video_history(video_id: str):
     client = get_client()
     response = client.table("rankings").select("rank, score, recorded_at, country_code").eq("video_id", video_id).order("recorded_at", desc=False).execute()
+    return results
+
+@app.get("/ranking/history/{video_id}")
+def get_video_history(video_id: str):
+    client = get_client()
+    response = client.table("rankings").select("rank, score, recorded_at, country_code").eq("video_id", video_id).order("recorded_at", desc=False).execute()
     return response.data
+
+@app.post("/color/assign")
+def assign_color(payload: dict):
+    valid_colors = ["red","blue","green","yellow","black","white","gold"]
+    user_id = payload.get("user_id")
+    video_id = payload.get("video_id")
+    color = payload.get("color","").lower()
+    if color not in valid_colors:
+        raise HTTPException(status_code=400, detail=f"Invalid color")
+    client = get_client()
+    client.table("color_assignments").insert({"user_id": user_id, "video_id": video_id, "color": color}).execute()
+    user_data = client.table("users").select("discovery_score").eq("user_id", user_id).execute()
+    current_score = user_data.data[0]["discovery_score"] if user_data.data else 0
+    client.table("users").update({"discovery_score": current_score + 5}).eq("user_id", user_id).execute()
+    return {"message": f"Color {color} assigned", "points_earned": 5}
+
+@app.get("/color/distribution/{video_id}")
+def get_color_distribution(video_id: str):
+    client = get_client()
+    result = client.table("color_assignments").select("color").eq("video_id", video_id).execute()
+    total = len(result.data)
+    if total == 0:
+        return {"video_id": video_id, "total": 0, "distribution": {}}
+    counts = {}
+    for row in result.data:
+        c = row["color"]
+        counts[c] = counts.get(c, 0) + 1
+    distribution = {c: round((n/total)*100, 1) for c, n in counts.items()}
+    return {"video_id": video_id, "total": total, "distribution": distribution}
 """
+
+with open("main.py", "w", encoding="utf-8") as f:
+    f.write(content)
+print("main.py written successfully")
 
 with open("main.py", "w", encoding="utf-8") as f:
     f.write(content)
