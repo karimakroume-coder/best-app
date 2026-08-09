@@ -5,10 +5,23 @@ import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from ranking.fetcher import fetch_trending
 from ranking.scorer import compute_score
-from database.client import save_video, save_ranking
+from database.client import save_video, save_ranking, get_client
+from apscheduler.schedulers.background import BackgroundScheduler
+from ranking.scheduler import run_ranking_pipeline
 load_dotenv()
 app = FastAPI(title="BEST API", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+scheduler = BackgroundScheduler()
+scheduler.add_job(run_ranking_pipeline, "interval", minutes=15)
+scheduler.start()
+app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000","http://localhost:3001"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+CATEGORY_IDS = {
+    "music": "10",
+    "gaming": "20",
+    "sports": "17",
+    "entertainment": "24",
+    "people": "22"
+}
 
 @app.get("/health")
 def health():
@@ -19,7 +32,7 @@ def get_global_ranking():
     videos = fetch_trending("10", "US")
     scored = []
     for video in videos:
-        score = compute_score(video)
+        score = compute_score(video, countries_present=["US"])
         scored.append({**video, **score})
     scored.sort(key=lambda x: x["total_score"], reverse=True)
     results = []
@@ -28,8 +41,47 @@ def get_global_ranking():
         save_ranking(video["video_id"], rank, video["total_score"], video["velocity_score"], video["geo_score"], video["retention_score"], "youtube", "US")
         results.append({"rank": rank, "video_id": video["video_id"], "title": video["title"], "channel_name": video["channel_name"], "view_count": video["view_count"], "total_score": video["total_score"], "velocity_score": video["velocity_score"], "retention_score": video["retention_score"], "thumbnail_url": video["thumbnail_url"]})
     return results
+
+@app.get("/ranking/category/{category_name}")
+def get_category_ranking(category_name: str):
+    cat_id = CATEGORY_IDS.get(category_name.lower(), "10")
+    videos = fetch_trending(cat_id, "US")
+    scored = []
+    for video in videos:
+        score = compute_score(video, countries_present=["US"])
+        scored.append({**video, **score})
+    scored.sort(key=lambda x: x["total_score"], reverse=True)
+    results = []
+    for rank, video in enumerate(scored, 1):
+        results.append({"rank": rank, "video_id": video["video_id"], "title": video["title"], "channel_name": video["channel_name"], "view_count": video["view_count"], "total_score": video["total_score"], "thumbnail_url": video["thumbnail_url"]})
+    return results
+
+@app.get("/ranking/country/{country_code}")
+def get_country_ranking(country_code: str):
+    videos = fetch_trending("10", country_code.upper())
+    scored = []
+    for video in videos:
+        score = compute_score(video, countries_present=[country_code.upper()])
+        scored.append({**video, **score})
+    scored.sort(key=lambda x: x["total_score"], reverse=True)
+    results = []
+    for rank, video in enumerate(scored, 1):
+        results.append({"rank": rank, "video_id": video["video_id"], "title": video["title"], "channel_name": video["channel_name"], "view_count": video["view_count"], "total_score": video["total_score"], "thumbnail_url": video["thumbnail_url"]})
+    return results
+
+@app.get("/ranking/history/{video_id}")
+def get_video_history(video_id: str):
+    client = get_client()
+    response = (
+        client.table("rankings")
+        .select("rank, score, recorded_at, country_code")
+        .eq("video_id", video_id)
+        .order("recorded_at", desc=False)
+        .execute()
+    )
+    return response.data
 """
 
-with open("main.py", "w") as f:
+with open("main.py", "w", encoding="utf-8") as f:
     f.write(content)
 print("main.py written successfully")
