@@ -28,7 +28,7 @@ function Rankings() {
     const token = localStorage.getItem('best_token');
     if (email) setUserEmail(email);
     if (token) {
-      axios.get('http://localhost:8000/user/profile', {
+      axios.get('http://10.159.241.236:8000/user/profile', {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => setDiscoveryScore(res.data.discovery_score))
         .catch(() => {});
@@ -38,8 +38,8 @@ function Rankings() {
   useEffect(() => {
     setLoading(true);
     const url = selectedCategory === 'global'
-      ? 'http://localhost:8000/ranking/global'
-      : `http://localhost:8000/ranking/category/${selectedCategory}`;
+      ? 'http://10.159.241.236:8000/ranking/global'
+      : `http://10.159.241.236:8000/ranking/category/${selectedCategory}`;
     axios.get(url)
       .then(res => { setRankings(res.data); setLoading(false); })
       .catch(() => setLoading(false));

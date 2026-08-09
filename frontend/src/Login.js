@@ -11,7 +11,7 @@ function Login({ onLogin }) {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('http://localhost:8000/auth/login', { email, password });
+      const res = await axios.post('http://10.159.241.236:8000/auth/login', { email, password });
       localStorage.setItem('best_token', res.data.access_token);
       localStorage.setItem('best_email', email);
       onLogin();

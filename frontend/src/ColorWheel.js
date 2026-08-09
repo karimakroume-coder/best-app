@@ -19,7 +19,7 @@ function ColorWheel({ videoId, userId, onColorSelected }) {
     if (color.locked) return;
     setSelected(color.name);
     try {
-      await axios.post('http://localhost:8000/color/assign', {
+      await axios.post('http://10.159.241.236:8000/color/assign', {
         user_id: userId,
         video_id: videoId,
         color: color.name

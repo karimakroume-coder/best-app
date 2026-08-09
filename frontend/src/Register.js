@@ -11,7 +11,7 @@ function Register({ onLogin }) {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.post('http://localhost:8000/auth/register', { email, password });
+      const res = await axios.post('http://10.159.241.236:8000/auth/register', { email, password });
       localStorage.setItem('best_token', res.data.access_token);
       localStorage.setItem('best_email', email);
       onLogin();
