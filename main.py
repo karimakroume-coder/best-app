@@ -2,11 +2,12 @@ from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
+from datetime import datetime, timedelta, timezone
 import os, sys
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from ranking.fetcher import fetch_trending
 from ranking.scorer import compute_score
-from database.client import save_video, save_ranking, get_client
+from database.client import get_client
 from auth.auth import create_access_token, get_token_from_header
 from apscheduler.schedulers.background import BackgroundScheduler
 from ranking.scheduler import run_ranking_pipeline
@@ -16,7 +17,7 @@ app = FastAPI(title="BEST API", version="1.0.0")
 scheduler = BackgroundScheduler()
 scheduler.add_job(run_ranking_pipeline, "interval", minutes=15)
 scheduler.start()
-app.add_middleware(CORSMiddleware, allow_origins=["http://localhost:3000","http://localhost:3001"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
 CATEGORY_IDS = {"music":"10","gaming":"20","sports":"17","entertainment":"24","people":"22"}
 
@@ -86,8 +87,6 @@ def get_global_ranking():
     scored.sort(key=lambda x: x["total_score"], reverse=True)
     results = []
     for rank, video in enumerate(scored, 1):
-        save_video(video)
-        save_ranking(video["video_id"], rank, video["total_score"], video["velocity_score"], video["geo_score"], video["retention_score"], "youtube", "US")
         results.append({"rank": rank, "video_id": video["video_id"], "title": video["title"], "channel_name": video["channel_name"], "view_count": video["view_count"], "total_score": video["total_score"], "velocity_score": video["velocity_score"], "retention_score": video["retention_score"], "thumbnail_url": video["thumbnail_url"]})
     return results
 
@@ -138,6 +137,32 @@ def assign_color(payload: dict):
     current_score = user_data.data[0]["discovery_score"] if user_data.data else 0
     client.table("users").update({"discovery_score": current_score + 5}).eq("user_id", user_id).execute()
     return {"message": f"Color {color} assigned", "points_earned": 5}
+
+@app.post("/fireflag/place")
+def place_fireflag(payload: dict):
+    user_id = payload.get("user_id")
+    video_id = payload.get("video_id")
+    if not user_id or not video_id:
+        raise HTTPException(status_code=400, detail="user_id and video_id are required")
+    client = get_client()
+
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    weekly = client.table("fireflags").select("id", count="exact") \
+        .eq("user_id", user_id).gte("placed_at", week_ago).execute()
+    if (weekly.count or 0) >= 10:
+        raise HTTPException(status_code=429, detail="You have used all your fireflags this week")
+
+    # No deactivation mechanism exists yet, so "active" is every fireflag
+    # this user has ever placed.
+    active = client.table("fireflags").select("id", count="exact").eq("user_id", user_id).execute()
+    if (active.count or 0) >= 20:
+        raise HTTPException(status_code=429, detail="You have reached your maximum of 20 active fireflags")
+
+    client.table("fireflags").insert({"user_id": user_id, "video_id": video_id}).execute()
+    user_data = client.table("users").select("discovery_score").eq("user_id", user_id).execute()
+    current_score = user_data.data[0]["discovery_score"] if user_data.data else 0
+    client.table("users").update({"discovery_score": current_score + 20}).eq("user_id", user_id).execute()
+    return {"message": "Fireflag placed", "points_earned": 20}
 
 @app.get("/color/distribution/{video_id}")
 def get_color_distribution(video_id: str):

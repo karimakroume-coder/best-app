@@ -1,7 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSpring, animated } from '@react-spring/web';
 import { useDrag, usePinch } from '@use-gesture/react';
+import axios from 'axios';
+import html2canvas from 'html2canvas';
 import ColorWheel from './ColorWheel';
+import StripKeyboard from './StripKeyboard';
+import FireflagIcon from './FireflagIcon';
+import HuntGame from './HuntGame';
 
 const RANK_STYLES = {
   1:  { color: '#C9A84C', fontSize: '72px', fontWeight: 'bold' },
@@ -117,7 +122,7 @@ const zoomButtonStyle = {
   fontSize: '9px', letterSpacing: '2px', zIndex: 110,
 };
 
-function SpatialMap({ rankings, userId, onColorAssigned }) {
+function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, onHuntComplete, onHuntStop }) {
   const [currentX, setCurrentX]               = useState(0);
   const [currentY, setCurrentY]                = useState(0);
   const [zoomLevel, setZoomLevel]              = useState(1);
@@ -126,6 +131,23 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
   const [assignedColors, setAssignedColors]    = useState({});
   const [isDropping, setIsDropping]            = useState(true);
   const [dropTargetRank, setDropTargetRank]    = useState(null);
+  const [assignedWords, setAssignedWords]      = useState({});
+  const [fireflaggedVideos, setFireflaggedVideos] = useState({});
+  const [fireflagAnimating, setFireflagAnimating] = useState(null);
+  const [fireflagError, setFireflagError] = useState(null);
+  const [huntTargetRank, setHuntTargetRank] = useState(null);
+  const [huntDiscovered, setHuntDiscovered] = useState(false);
+
+  // ── THE MARK ─────────────────────────────────────────────────────────────
+  // idle -> spreading -> keyboard -> confirmed -> sharing -> receding -> idle
+  const [markStage, setMarkStage]   = useState('idle');
+  const [markColor, setMarkColor]   = useState(null);
+  const [markOrigin, setMarkOrigin] = useState({ x: 0, y: 0 });
+  const [markVideo, setMarkVideo]   = useState(null);
+  const [markWord, setMarkWord]     = useState('');
+  const [markSnapshotUrl, setMarkSnapshotUrl] = useState(null);
+  const [spreadOn, setSpreadOn]     = useState(false);
+  const markCaptureRef = useRef(null);
 
   const totalRanks = rankings.length;
 
@@ -136,6 +158,33 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
 
   const currentRank  = coordToRank[`${currentX},${currentY}`];
   const currentVideo = currentRank ? rankings[currentRank - 1] : null;
+
+  // ── HUNT GAME ─────────────────────────────────────────────────────────────
+  const huntTargetVideo = huntTargetRank ? rankings[huntTargetRank - 1] : null;
+  const huntTargetCoord = huntTargetRank ? rankToCoord[huntTargetRank] : null;
+  const huntAngle = huntTargetCoord
+    ? Math.atan2(huntTargetCoord.x - currentX, huntTargetCoord.y - currentY) * (180 / Math.PI)
+    : 0;
+  const huntWithinRange = !!(huntTargetRank && currentRank && Math.abs(currentRank - huntTargetRank) <= 5);
+
+  useEffect(() => {
+    if (huntActive && totalRanks > 0) {
+      setHuntTargetRank(Math.floor(Math.random() * totalRanks) + 1);
+      setHuntDiscovered(false);
+    } else if (!huntActive) {
+      setHuntTargetRank(null);
+      setHuntDiscovered(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [huntActive]);
+
+  useEffect(() => {
+    if (huntActive && huntTargetRank && currentRank === huntTargetRank && !huntDiscovered) {
+      setHuntDiscovered(true);
+      const t = setTimeout(() => { if (onHuntComplete) onHuntComplete(); }, 1400);
+      return () => clearTimeout(t);
+    }
+  }, [huntActive, huntTargetRank, currentRank, huntDiscovered, onHuntComplete]);
 
   // Top-50 cards with both their permanent grid position and their target
   // letter position, normalized into the same 0-100% screen space.
@@ -214,6 +263,110 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
     });
   }, [dropApi, rankToCoord]);
 
+  // ── THE MARK: liquid spread → strip keyboard → snapshot → recede ────────
+  const startMark = useCallback((color, origin) => {
+    if (!currentVideo) return;
+    setMarkVideo(currentVideo);
+    setMarkColor(color);
+    setMarkOrigin(origin);
+    setMarkWord('');
+    setShowColorWheel(false);
+    setDotState('hidden');
+    setSpreadOn(false);
+    setMarkStage('spreading');
+  }, [currentVideo]);
+
+  const confirmWord = useCallback((word) => {
+    setMarkWord(word);
+    setMarkStage('confirmed');
+  }, []);
+
+  const handleShare = useCallback(async (snapshotUrl) => {
+    if (!snapshotUrl) return;
+    try {
+      const res = await fetch(snapshotUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `best-mark-${Date.now()}.png`, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: 'BEST', text: markWord });
+      } else if (navigator.share) {
+        await navigator.share({ title: 'BEST', text: markWord });
+      }
+    } catch (err) {
+      console.log('Share error:', err);
+    }
+  }, [markWord]);
+
+  // spreading: 0% -> 150% over 1.2s ease-out, then hand off to the keyboard
+  useEffect(() => {
+    if (markStage !== 'spreading') return;
+    let raf1, raf2;
+    raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setSpreadOn(true));
+    });
+    const t = setTimeout(() => setMarkStage('keyboard'), 1200);
+    return () => { cancelAnimationFrame(raf1); cancelAnimationFrame(raf2); clearTimeout(t); };
+  }, [markStage]);
+
+  // confirmed: word locked in, capture the snapshot once the keyboard is gone
+  useEffect(() => {
+    if (markStage !== 'confirmed') return;
+    let cancelled = false;
+    (async () => {
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      if (cancelled || !markCaptureRef.current) return;
+      try {
+        const canvas = await html2canvas(markCaptureRef.current, { backgroundColor: null, useCORS: true });
+        const ctx = canvas.getContext('2d');
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = '#C9A84C';
+        ctx.textAlign = 'right';
+        ctx.shadowColor = 'rgba(0,0,0,0.6)';
+        ctx.shadowBlur = 4;
+        ctx.fillText('BEST', canvas.width - 20, canvas.height - 20);
+        const dataUrl = canvas.toDataURL('image/png');
+        if (cancelled) return;
+        setMarkSnapshotUrl(dataUrl);
+        const link = document.createElement('a');
+        link.href = dataUrl;
+        link.download = `best-mark-${markVideo ? markVideo.video_id : Date.now()}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (err) {
+        console.log('Snapshot error:', err);
+      }
+      if (!cancelled) setMarkStage('sharing');
+    })();
+    return () => { cancelled = true; };
+  }, [markStage, markVideo]);
+
+  // sharing: show the share button for 3 seconds, then recede
+  useEffect(() => {
+    if (markStage !== 'sharing') return;
+    const t = setTimeout(() => setMarkStage('receding'), 3000);
+    return () => clearTimeout(t);
+  }, [markStage]);
+
+  // receding: 150% -> 0% over 0.8s, word fades, then leave the permanent mark
+  useEffect(() => {
+    if (markStage !== 'receding') return;
+    setSpreadOn(false);
+    const t = setTimeout(() => {
+      if (markVideo && markColor) {
+        setAssignedColors(prev => ({ ...prev, [markVideo.video_id]: markColor.name }));
+        setAssignedWords(prev => ({ ...prev, [markVideo.video_id]: markWord }));
+        if (onColorAssigned) onColorAssigned(markVideo.video_id, markColor.name);
+      }
+      setMarkStage('idle');
+      setMarkColor(null);
+      setMarkSnapshotUrl(null);
+      setMarkWord('');
+      setDotState('single');
+    }, 800);
+    return () => clearTimeout(t);
+  }, [markStage, markVideo, markColor, markWord, onColorAssigned]);
+
   // ── MOUNT: initial drop onto a random rank ──────────────────────────────
   const hasStartedRef = useRef(false);
   useEffect(() => {
@@ -243,7 +396,7 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
 
   // ── DRAG GESTURE (moves position on the coordinate grid) ────────────────
   const bind = useDrag(({ last, direction: [dx, dy], distance: [distX, distY] }) => {
-    if (!last) return;
+    if (!last || markStage !== 'idle') return;
     if (Math.abs(distX) > Math.abs(distY) && distX > 50) {
       navigateToCoord(currentX + (dx < 0 ? 1 : -1), currentY);
     } else if (Math.abs(distY) > Math.abs(distX) && distY > 50) {
@@ -253,7 +406,7 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
 
   // ── PINCH GESTURE (zoom level only) ─────────────────────────────────────
   const pinchBind = usePinch(({ offset: [scale], last }) => {
-    if (!last) return;
+    if (!last || markStage !== 'idle') return;
     if (scale < 0.7 && zoomLevel === 1) setZoomLevel(3);
     else if (scale < 0.7 && zoomLevel === 3) setZoomLevel(5);
     else if (scale > 1.3 && zoomLevel === 5) setZoomLevel(3);
@@ -269,9 +422,33 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
     yellow:'#F1C40F', black:'#2C2C2C', white:'#FFFFFF', gold:'#C9A84C'
   }[name] || '#555555');
 
+  // ── FIREFLAGS ─────────────────────────────────────────────────────────────
+  const placeFireflag = useCallback(async (e, video) => {
+    e.stopPropagation();
+    if (!video || fireflaggedVideos[video.video_id]) return;
+    try {
+      await axios.post('http://192.168.11.152:8000/fireflag/place', {
+        user_id: userId,
+        video_id: video.video_id,
+      });
+      setFireflaggedVideos(prev => ({ ...prev, [video.video_id]: true }));
+      setFireflagAnimating(video.video_id);
+      setTimeout(() => setFireflagAnimating(v => v === video.video_id ? null : v), 400);
+    } catch (err) {
+      const message = err.response?.status === 429
+        ? err.response.data?.detail || 'Fireflag limit reached'
+        : 'Could not place fireflag';
+      setFireflagError(message);
+      setTimeout(() => setFireflagError(m => m === message ? null : m), 3000);
+      console.log('Fireflag place error:', err);
+    }
+  }, [fireflaggedVideos, userId]);
+
+  const bgColor = darkMode ? '#000000' : '#0A0A0A';
+
   // ── SHARED FORMATION RENDERER (zoomLevel 5 blend + zoomLevel 99 lock) ───
   const renderFormation = (blend, onCardClick, hintText) => (
-    <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
+    <div style={{ width:'100vw', height:'100vh', backgroundColor:bgColor,
                   position:'relative', overflow:'hidden', touchAction:'none' }}
          {...pinchBind()}>
       <button onClick={(e) => { e.stopPropagation(); cycleZoom(); }} style={zoomButtonStyle}>
@@ -289,6 +466,15 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
       {gridLetterData.map(({ video, grid, letter }) => {
         const x = grid.x + (letter.x - grid.x) * blend;
         const y = grid.y + (letter.y - grid.y) * blend;
+        const flagged = !!fireflaggedVideos[video.video_id];
+        if (darkMode && !flagged) {
+          return (
+            <div key={video.video_id}
+                 style={{ position:'absolute', left:`${x}%`, top:`${y}%`,
+                          transform:'translate(-50%,-50%)', width:'32px', height:'18px',
+                          backgroundColor:'#000000', transition:'left 0.7s ease, top 0.7s ease' }} />
+          );
+        }
         return (
           <div key={video.video_id}
                onClick={(e) => { e.stopPropagation(); onCardClick(video); }}
@@ -296,6 +482,7 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
                         transform:'translate(-50%,-50%)', width:'32px', height:'18px',
                         overflow:'hidden', cursor:'pointer', borderRadius:'1px',
                         border: video.rank === currentRank ? '1px solid #C9A84C' : '1px solid #222',
+                        boxShadow: darkMode && flagged ? '0 0 20px rgba(243,156,18,0.4)' : 'none',
                         transition:'left 0.7s ease, top 0.7s ease', zIndex:5 }}>
             {video.thumbnail_url &&
               <img src={video.thumbnail_url} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />}
@@ -323,7 +510,7 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
   if (isDropping) {
     const dropVideo = dropTargetRank ? rankings[dropTargetRank - 1] : null;
     return (
-      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A', position:'relative', overflow:'hidden' }}>
+      <div style={{ width:'100vw', height:'100vh', backgroundColor:bgColor, position:'relative', overflow:'hidden' }}>
         <animated.div style={{
           position:'absolute', inset:0, display:'flex', flexDirection:'column',
           alignItems:'center', justifyContent:'center',
@@ -379,7 +566,7 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
       for (let dx = -1; dx <= 1; dx++) cells.push({ dx, dy });
     }
     return (
-      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
+      <div style={{ width:'100vw', height:'100vh', backgroundColor:bgColor,
                     display:'grid', gridTemplateColumns:'repeat(3,1fr)',
                     gridTemplateRows:'repeat(3,1fr)', gap:'3px', padding:'3px',
                     touchAction:'none', position:'relative' }}
@@ -391,12 +578,22 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
           const isCenter = dx === 0 && dy === 0;
           const rank = coordToRank[`${currentX + dx},${currentY + dy}`];
           const v = rank ? rankings[rank - 1] : null;
+          const flagged = v && !!fireflaggedVideos[v.video_id];
+          if (darkMode && v && !flagged) {
+            return (
+              <div key={`${dx},${dy}`}
+                   onClick={() => navigateToCoord(currentX + dx, currentY + dy)}
+                   style={{ position:'relative', cursor:'pointer', backgroundColor:'#000000',
+                            border: isCenter ? '2px solid #111' : 'none' }} />
+            );
+          }
           return (
             <div key={`${dx},${dy}`}
                  onClick={() => { if (v) navigateToCoord(currentX + dx, currentY + dy); }}
                  style={{ position:'relative', overflow:'hidden', cursor: v ? 'pointer' : 'default',
-                          backgroundColor:'#111',
+                          backgroundColor: darkMode ? '#000000' : '#111',
                           border: isCenter ? '2px solid #C9A84C' : '1px solid #222',
+                          boxShadow: darkMode && flagged ? '0 0 20px rgba(243,156,18,0.4)' : 'none',
                           transform: isCenter ? 'scale(1.04)' : 'scale(1)',
                           transition:'transform 0.2s', zIndex: isCenter ? 2 : 1 }}>
               {v?.thumbnail_url &&
@@ -412,6 +609,11 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
                   #{v.rank}
                 </div>
               )}
+              {flagged && (
+                <div style={{ position:'absolute', bottom:'2px', right:'2px' }}>
+                  <FireflagIcon size={12} />
+                </div>
+              )}
             </div>
           );
         })}
@@ -425,18 +627,23 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
   }
 
   // ── SINGLE CARD VIEW ────────────────────────────────────────────────────
+  const isFlagged = !!fireflaggedVideos[currentVideo.video_id];
+  const dimmedByDarkMode = darkMode && !isFlagged;
   return (
-    <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
+    <div style={{ width:'100vw', height:'100vh', backgroundColor:bgColor,
                   position:'relative', overflow:'hidden', touchAction:'none',
                   userSelect:'none' }}
          {...bind()} {...pinchBind()}
-         onDoubleClick={() => navigateToCoord(0, 0)}
-         onClick={() => { if (dotState === 'hidden') setDotState('single'); }}>
+         onDoubleClick={() => { if (markStage === 'idle') navigateToCoord(0, 0); }}
+         onClick={() => { if (markStage === 'idle' && dotState === 'hidden') setDotState('single'); }}>
 
       {/* VIDEO CARD */}
       <animated.div style={{ ...springs, width:'100%', height:'100%',
                               display:'flex', flexDirection:'column',
-                              alignItems:'center', justifyContent:'center' }}>
+                              alignItems:'center', justifyContent:'center',
+                              opacity: dimmedByDarkMode ? 0 : 1,
+                              pointerEvents: dimmedByDarkMode ? 'none' : 'auto',
+                              transition:'opacity 0.4s ease' }}>
 
         {/* THUMBNAIL */}
         {currentVideo.thumbnail_url && (
@@ -468,19 +675,6 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
                         letterSpacing:'2px' }}>
             BEST {currentVideo.total_score}
           </div>
-
-          {/* ASSIGNED COLOR DOT */}
-          {assignedColors[currentVideo.video_id] && (
-            <div style={{ marginTop:'12px', display:'flex',
-                          alignItems:'center', justifyContent:'center', gap:'8px' }}>
-              <div style={{ width:'12px', height:'12px', borderRadius:'50%',
-                            backgroundColor: getColorHex(assignedColors[currentVideo.video_id]),
-                            boxShadow:`0 0 8px ${getColorHex(assignedColors[currentVideo.video_id])}` }} />
-              <span style={{ color:'#555', fontSize:'9px', letterSpacing:'2px' }}>
-                {assignedColors[currentVideo.video_id].toUpperCase()}
-              </span>
-            </div>
-          )}
         </div>
 
         {/* YOUTUBE LINK */}
@@ -508,6 +702,47 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
                     fontSize:'24px', zIndex:3, pointerEvents:'none' }}>
         {coordToRank[`${currentX + 1},${currentY}`] ? '›' : ''}
       </div>
+
+      {/* PERMANENT MARK — dot + word left behind in the card's corner forever */}
+      {assignedColors[currentVideo.video_id] && !dimmedByDarkMode && (
+        <div style={{ position:'absolute', bottom:'16px', left:'16px', zIndex:8,
+                      display:'flex', alignItems:'center', gap:'6px' }}>
+          <div style={{ width:'10px', height:'10px', borderRadius:'50%',
+                        backgroundColor: getColorHex(assignedColors[currentVideo.video_id]),
+                        boxShadow:`0 0 6px ${getColorHex(assignedColors[currentVideo.video_id])}` }} />
+          {assignedWords[currentVideo.video_id] && (
+            <span style={{ color:'#666', fontSize:'9px', letterSpacing:'1px' }}>
+              {assignedWords[currentVideo.video_id]}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* FIREFLAG — tappable prompt while the three dots are open */}
+      {dotState === 'three' && !isFlagged && (
+        <div style={{ position:'absolute', bottom:'16px', right:'16px', zIndex:9,
+                      display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'6px' }}>
+          {fireflagError && (
+            <span style={{ color:'#E74C3C', fontSize:'8px', letterSpacing:'1px',
+                           maxWidth:'140px', textAlign:'right' }}>
+              {fireflagError.toUpperCase()}
+            </span>
+          )}
+          <FireflagIcon size={28} onClick={(e) => placeFireflag(e, currentVideo)} alt="Place fireflag" />
+        </div>
+      )}
+
+      {/* FIREFLAG — permanent mark once placed */}
+      {isFlagged && (
+        <div style={{ position:'absolute', bottom:'16px', right:'16px', zIndex:9 }}>
+          <FireflagIcon
+            size={20}
+            glow={darkMode}
+            animatePop={fireflagAnimating === currentVideo.video_id}
+            alt="Fireflag placed"
+          />
+        </div>
+      )}
 
       {/* ZOOM HINT */}
       <div style={{ position:'absolute', bottom:'20px', left:'50%',
@@ -602,14 +837,64 @@ function SpatialMap({ rankings, userId, onColorAssigned }) {
             <ColorWheel
               videoId={currentVideo.video_id}
               userId={userId}
-              onColorSelected={(color) => {
-                setAssignedColors(prev => ({...prev, [currentVideo.video_id]: color.name}));
-                if (onColorAssigned) onColorAssigned(currentVideo.video_id, color.name);
-                setShowColorWheel(false);
-                setDotState('single');
-              }}
+              onColorSelected={(color, origin) => startMark(color, origin)}
             />
           </div>
+        </div>
+      )}
+
+      {/* HUNT GAME */}
+      {huntActive && (
+        <HuntGame
+          targetVideo={huntTargetVideo}
+          angleDeg={huntAngle}
+          withinRange={huntWithinRange}
+          discovered={huntDiscovered}
+          onClose={() => { if (onHuntStop) onHuntStop(); }}
+        />
+      )}
+
+      {/* THE MARK — liquid spread → strip keyboard → snapshot → recede */}
+      {markStage !== 'idle' && markColor && (
+        <div style={{ position:'absolute', inset:0, zIndex:200, overflow:'hidden' }}>
+          <div ref={markCaptureRef} style={{ position:'absolute', inset:0, overflow:'hidden' }}>
+            {markVideo?.thumbnail_url && (
+              <img src={markVideo.thumbnail_url} alt=""
+                   style={{ width:'100%', height:'100%', objectFit:'cover', opacity:0.25 }} />
+            )}
+            <div style={{
+              position:'absolute', inset:0, backgroundColor: markColor.hex, opacity:0.7,
+              clipPath: `circle(${spreadOn ? 150 : 0}% at ${markOrigin.x}px ${markOrigin.y}px)`,
+              transition: markStage === 'receding' ? 'clip-path 0.8s ease' : 'clip-path 1.2s ease-out',
+            }} />
+            {(markStage === 'confirmed' || markStage === 'sharing' || markStage === 'receding') && (
+              <div style={{
+                position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
+                color:'#FFFFFF', fontSize:'48px', fontWeight:'bold', letterSpacing:'4px',
+                textAlign:'center', maxWidth:'90%', wordBreak:'break-word',
+                textShadow:'0 0 30px rgba(0,0,0,0.5)',
+                opacity: markStage === 'receding' ? 0 : 1,
+                transition:'opacity 0.8s ease',
+              }}>
+                {markWord}
+              </div>
+            )}
+          </div>
+
+          {markStage === 'keyboard' && (
+            <StripKeyboard color={markColor.hex} onConfirm={confirmWord} />
+          )}
+
+          {markStage === 'sharing' && (
+            <button
+              onClick={() => handleShare(markSnapshotUrl)}
+              style={{ position:'absolute', bottom:'60px', left:'50%', transform:'translateX(-50%)',
+                       backgroundColor: markColor.hex, color:'#0A0A0A', border:'none',
+                       padding:'10px 24px', borderRadius:'20px', fontSize:'11px',
+                       fontWeight:'bold', letterSpacing:'2px', cursor:'pointer', zIndex:210 }}>
+              SHARE
+            </button>
+          )}
         </div>
       )}
 

@@ -15,21 +15,16 @@ function ColorWheel({ videoId, userId, onColorSelected }) {
   const [selected, setSelected] = useState(null);
   const [hovering, setHovering] = useState(null);
 
-  const handleColorClick = async (color) => {
+  const handleColorClick = (e, color) => {
     if (color.locked) return;
     setSelected(color.name);
-    try {
-      await axios.post('http://10.159.241.236:8000/color/assign', {
-        user_id: userId,
-        video_id: videoId,
-        color: color.name
-      });
-      setTimeout(() => {
-        if (onColorSelected) onColorSelected(color);
-      }, 600);
-    } catch (err) {
-      console.log('Color assign error:', err);
-    }
+    const origin = { x: e.clientX, y: e.clientY };
+    axios.post('http://192.168.11.152:8000/color/assign', {
+      user_id: userId,
+      video_id: videoId,
+      color: color.name
+    }).catch(err => console.log('Color assign error:', err));
+    if (onColorSelected) onColorSelected(color, origin);
   };
 
   return (
@@ -40,7 +35,7 @@ function ColorWheel({ videoId, userId, onColorSelected }) {
       {COLORS.map(color => (
         <div key={color.name} style={{ position: 'relative', textAlign: 'center' }}>
           <div
-            onClick={() => handleColorClick(color)}
+            onClick={(e) => handleColorClick(e, color)}
             onMouseEnter={() => setHovering(color.name)}
             onMouseLeave={() => setHovering(null)}
             style={{

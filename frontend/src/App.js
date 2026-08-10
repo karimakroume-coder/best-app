@@ -4,6 +4,7 @@ import axios from 'axios';
 import Login from './Login';
 import Register from './Register';
 import SpatialMap from './SpatialMap';
+import fireflagPng from './assets/icons/FIREFLAG.png';
 
 const CATEGORIES = [
   { label: 'Global',        value: 'global' },
@@ -20,6 +21,8 @@ function Rankings() {
   const [userEmail, setUserEmail]             = useState('');
   const [discoveryScore, setDiscoveryScore]   = useState(null);
   const [assignedColors, setAssignedColors]   = useState({});
+  const [darkMode, setDarkMode]               = useState(false);
+  const [huntActive, setHuntActive]           = useState(false);
 
   const userId = 'a307cc62-3afd-47b0-9911-9300a934d788';
 
@@ -28,7 +31,7 @@ function Rankings() {
     const token = localStorage.getItem('best_token');
     if (email) setUserEmail(email);
     if (token) {
-      axios.get('http://10.159.241.236:8000/user/profile', {
+      axios.get('http://192.168.11.152:8000/user/profile', {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => setDiscoveryScore(res.data.discovery_score))
         .catch(() => {});
@@ -38,8 +41,8 @@ function Rankings() {
   useEffect(() => {
     setLoading(true);
     const url = selectedCategory === 'global'
-      ? 'http://10.159.241.236:8000/ranking/global'
-      : `http://10.159.241.236:8000/ranking/category/${selectedCategory}`;
+      ? 'http://192.168.11.152:8000/ranking/global'
+      : `http://192.168.11.152:8000/ranking/category/${selectedCategory}`;
     axios.get(url)
       .then(res => { setRankings(res.data); setLoading(false); })
       .catch(() => setLoading(false));
@@ -53,14 +56,14 @@ function Rankings() {
   };
 
   return (
-    <div style={{ backgroundColor: '#0A0A0A', minHeight: '100vh',
+    <div style={{ backgroundColor: darkMode ? '#000000' : '#0A0A0A', minHeight: '100vh',
                   fontFamily: 'Arial, sans-serif', position: 'relative' }}>
 
       {/* HEADER */}
       <div style={{ position: 'fixed', top: 0, left: 0, right: 0,
                     padding: '12px 24px', display: 'flex',
                     alignItems: 'center', justifyContent: 'space-between',
-                    zIndex: 100, backgroundColor: 'rgba(10,10,10,0.8)',
+                    zIndex: 100, backgroundColor: darkMode ? 'rgba(0,0,0,0.9)' : 'rgba(10,10,10,0.8)',
                     backdropFilter: 'blur(8px)' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -83,6 +86,30 @@ function Rankings() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button onClick={() => setHuntActive(a => !a)}
+            title={huntActive ? 'Stop hunt' : 'Start hunt'}
+            style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
+                     padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
+                           width: '16px', height: '16px', borderRadius: '50%',
+                           border: `1.5px solid ${huntActive ? '#C9A84C' : '#555'}`,
+                           boxShadow: huntActive ? '0 0 6px rgba(201,168,76,0.7)' : 'none',
+                           transition: 'border-color 0.3s ease, box-shadow 0.3s ease' }}>
+              <span style={{ fontSize: '8px', lineHeight: 1,
+                             color: huntActive ? '#C9A84C' : '#555' }}>▲</span>
+            </span>
+          </button>
+          <button onClick={() => setDarkMode(d => !d)}
+            title={darkMode ? 'Dark mode on' : 'Dark mode off'}
+            style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
+                     padding: '2px', display: 'flex', alignItems: 'center' }}>
+            <img src={fireflagPng} alt="Toggle dark mode"
+                 style={{ width: '16px', height: '16px', objectFit: 'contain',
+                          filter: darkMode
+                            ? 'drop-shadow(0 0 4px rgba(243,156,18,0.9)) saturate(1.5)'
+                            : 'grayscale(100%) brightness(0.7) opacity(0.6)',
+                          transition: 'filter 0.3s ease' }} />
+          </button>
           {userEmail ? (
             <>
               <span style={{ color: '#C9A84C', fontSize: '10px', letterSpacing: '1px' }}>
@@ -129,6 +156,13 @@ function Rankings() {
           <SpatialMap
             rankings={rankings}
             userId={userId}
+            darkMode={darkMode}
+            huntActive={huntActive}
+            onHuntComplete={() => {
+              setDiscoveryScore(prev => prev !== null ? prev + 50 : 50);
+              setHuntActive(false);
+            }}
+            onHuntStop={() => setHuntActive(false)}
             onColorAssigned={(videoId, color) => {
               setAssignedColors(prev => ({...prev, [videoId]: color}));
               setDiscoveryScore(prev => prev !== null ? prev + 5 : 5);
