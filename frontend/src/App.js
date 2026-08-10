@@ -44,8 +44,16 @@ function Rankings() {
       ? 'http://192.168.11.152:8000/ranking/global'
       : `http://192.168.11.152:8000/ranking/category/${selectedCategory}`;
     axios.get(url)
-      .then(res => { setRankings(res.data); setLoading(false); })
-      .catch(() => setLoading(false));
+      .then(res => {
+        const data = res.data;
+        setRankings(data);
+        setLoading(false);
+        console.log('Rankings received:', data.length, data[0]?.title);
+      })
+      .catch(err => {
+        setLoading(false);
+        console.error('Rankings fetch failed:', err.message, url);
+      });
   }, [selectedCategory]);
 
   const handleLogout = () => {

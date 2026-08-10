@@ -123,6 +123,8 @@ const zoomButtonStyle = {
 };
 
 function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, onHuntComplete, onHuntStop }) {
+  console.log('SpatialMap rankings prop:', rankings?.length);
+
   const [currentX, setCurrentX]               = useState(0);
   const [currentY, setCurrentY]                = useState(0);
   const [zoomLevel, setZoomLevel]              = useState(1);
@@ -237,13 +239,32 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
 
   // ── DROP ANIMATION (cinematic camera fall onto a rank) ──────────────────
   const [dropSpring, dropApi] = useSpring(() => ({ p: 0 }));
+  const dropLandedRef = useRef(false);
 
   const playDropAnimation = useCallback((targetRank) => {
-    if (!targetRank) return;
+    if (!targetRank || totalRanks === 0) return;
+    dropLandedRef.current = false;
     setDropTargetRank(targetRank);
     setShowColorWheel(false);
     setIsDropping(true);
     dropApi.set({ p: 0 });
+
+    const land = () => {
+      if (dropLandedRef.current) return;
+      dropLandedRef.current = true;
+      const coord = rankToCoord[targetRank];
+      if (coord) { setCurrentX(coord.x); setCurrentY(coord.y); }
+      setZoomLevel(1);
+      setDotState('single');
+      setIsDropping(false);
+    };
+
+    // Failsafe: if react-spring's onRest chain never fires for any reason
+    // (backgrounded tab, an interrupted/replaced animation, etc.), still
+    // land on the target rather than leaving the user stuck on the
+    // WORLD BEST intro forever.
+    const failsafe = setTimeout(land, 4000);
+
     dropApi.start({
       p: 0.7,
       config: { tension: 40, friction: 8 },
@@ -252,16 +273,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
           p: 1,
           config: { tension: 400, friction: 20 },
           onRest: () => {
-            const coord = rankToCoord[targetRank];
-            if (coord) { setCurrentX(coord.x); setCurrentY(coord.y); }
-            setZoomLevel(1);
-            setDotState('single');
-            setIsDropping(false);
+            clearTimeout(failsafe);
+            land();
           }
         });
       }
     });
-  }, [dropApi, rankToCoord]);
+  }, [dropApi, rankToCoord, totalRanks]);
 
   // ── THE MARK: liquid spread → strip keyboard → snapshot → recede ────────
   const startMark = useCallback((color, origin) => {
@@ -504,7 +522,16 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
     </div>
   );
 
-  if (totalRanks === 0) return null;
+  if (!rankings || rankings.length === 0) {
+    return (
+      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
+                    display:'flex', alignItems:'center', justifyContent:'center' }}>
+        <div style={{ color:'#C9A84C', fontSize:'14px', letterSpacing:'4px' }}>
+          LOADING...
+        </div>
+      </div>
+    );
+  }
 
   // ── DROP ANIMATION OVERLAY ───────────────────────────────────────────────
   if (isDropping) {
