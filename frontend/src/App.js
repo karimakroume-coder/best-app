@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import Login from './Login';
@@ -13,6 +13,8 @@ const CATEGORIES = [
   { label: 'Gaming',        value: 'gaming' },
   { label: 'Sports',        value: 'sports' },
   { label: 'Entertainment', value: 'entertainment' },
+  { label: 'Morocco',       value: 'morocco' },
+  { label: 'Trending',      value: 'trending' },
 ];
 
 function Rankings() {
@@ -25,6 +27,13 @@ function Rankings() {
   const [huntActive, setHuntActive]           = useState(false);
 
   const userId = 'a307cc62-3afd-47b0-9911-9300a934d788';
+
+  // Auto-scroll the category strip so the active pill is centered.
+  const categoryPillRefs = useRef({});
+  useEffect(() => {
+    const el = categoryPillRefs.current[selectedCategory];
+    if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [selectedCategory]);
 
   useEffect(() => {
     const email = localStorage.getItem('best_email');
@@ -40,12 +49,22 @@ function Rankings() {
 
   useEffect(() => {
     setLoading(true);
-    const url = selectedCategory === 'global'
-      ? 'https://web-production-a267.up.railway.app/ranking/global'
-      : `https://web-production-a267.up.railway.app/ranking/category/${selectedCategory}`;
+    const base = 'https://web-production-a267.up.railway.app';
+    const url = selectedCategory === 'global' || selectedCategory === 'trending'
+      ? `${base}/ranking/global`
+      : selectedCategory === 'morocco'
+      ? `${base}/ranking/country/MA`
+      : `${base}/ranking/category/${selectedCategory}`;
     axios.get(url)
       .then(res => {
-        const data = res.data;
+        let data = res.data;
+        if (selectedCategory === 'trending') {
+          // Same global pool, re-ranked by velocity (views/hour) instead of
+          // the composite BEST score, to surface what's rising fastest.
+          data = [...data]
+            .sort((a, b) => (b.velocity_score ?? 0) - (a.velocity_score ?? 0))
+            .map((v, i) => ({ ...v, rank: i + 1 }));
+        }
         setRankings(data);
         setLoading(false);
         console.log('Rankings received:', data.length, data[0]?.title);
@@ -81,20 +100,29 @@ function Rankings() {
             <span style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
                            fontSize: '10px', letterSpacing: '6px' }}>VIDEO RANKING</span>
           </div>
-          <div style={{ display: 'flex', gap: '4px', marginLeft: '16px' }}>
+          <div className="category-strip"
+               style={{ display: 'flex', gap: '8px', marginLeft: '16px',
+                        overflowX: 'auto', scrollBehavior: 'smooth',
+                        scrollbarWidth: 'none', msOverflowStyle: 'none',
+                        maxWidth: '42vw' }}>
             {CATEGORIES.map(cat => (
-              <button key={cat.value} onClick={() => setSelectedCategory(cat.value)}
+              <button key={cat.value}
+                ref={el => { categoryPillRefs.current[cat.value] = el; }}
+                onClick={() => setSelectedCategory(cat.value)}
                 style={{ backgroundColor: selectedCategory === cat.value
-                           ? '#C9A84C' : 'transparent',
-                         color: selectedCategory === cat.value ? '#000' : '#444',
-                         border: '1px solid',
-                         borderColor: selectedCategory === cat.value ? '#C9A84C' : '#222',
-                         padding: '3px 10px', cursor: 'pointer',
-                         fontSize: '9px', letterSpacing: '1px', borderRadius: '2px' }}>
+                           ? '#C8A951' : 'transparent',
+                         color: selectedCategory === cat.value ? '#0D0800' : '#555',
+                         border: selectedCategory === cat.value ? 'none' : '1px solid #333',
+                         padding: '6px 20px', cursor: 'pointer', flexShrink: 0,
+                         fontFamily: 'Bebas Neue, sans-serif', fontSize: '13px',
+                         letterSpacing: '3px', borderRadius: '2px' }}>
                 {cat.label.toUpperCase()}
               </button>
             ))}
           </div>
+          <style>{`
+            .category-strip::-webkit-scrollbar { display: none; }
+          `}</style>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>

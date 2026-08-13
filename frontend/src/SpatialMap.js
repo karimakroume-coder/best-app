@@ -994,9 +994,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
                  style={{ width:'44px', height:'44px', display:'flex',
                           alignItems:'center', justifyContent:'center',
                           cursor:'pointer' }}>
-              <div style={{ width:'12px', height:'12px', borderRadius:'50%',
-                            backgroundColor:'#FFFFFF',
-                            boxShadow:'0 0 8px rgba(255,255,255,0.5)',
+              <div style={{ width:'36px', height:'36px', borderRadius:'50%',
+                            backgroundColor:'#C8A951',
+                            boxShadow:'0 0 12px rgba(201,169,81,0.6)',
                             animation:'fadeIn 0.3s ease', pointerEvents:'none' }} />
             </div>
           )}
