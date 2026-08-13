@@ -427,31 +427,38 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
   }, [markStage, markVideo, markColor, markWord, onColorAssigned]);
 
   // ── MOUNT: initial drop onto a random rank ──────────────────────────────
-  const hasStartedRef = useRef(false);
+  // Guards against the DROP replaying if this effect re-runs (e.g. a
+  // StrictMode double-invoke in dev, or totalRanks changing after a refetch).
+  const dropPlayedRef = useRef(false);
   useEffect(() => {
-    if (!hasStartedRef.current && totalRanks > 0) {
-      hasStartedRef.current = true;
-      playDropAnimation(Math.floor(Math.random() * totalRanks) + 1);
-    }
+    if (dropPlayedRef.current || totalRanks === 0) return;
+    dropPlayedRef.current = true;
+    playDropAnimation(Math.floor(Math.random() * totalRanks) + 1);
   }, [totalRanks, playDropAnimation]);
 
   // ── SHAKE TO RANDOM DROP ────────────────────────────────────────────────
+  // Deliberately conservative: normal phone handling (picking it up,
+  // walking, tapping the screen) easily produces combined accelerations
+  // well above what feels like a "shake" to the person holding it. A low
+  // threshold here fires unwanted drops on real devices even though it
+  // never triggers on desktop (no devicemotion events), which is why this
+  // only ever showed up on the deployed mobile build.
   useEffect(() => {
     let lastTime = 0;
-    let lastAcc  = 0;
     const onMotion = (e) => {
+      if (isDropping || markStage !== 'idle') return;
       const { x, y, z } = e.accelerationIncludingGravity || {};
-      if (!x) return;
+      if (x === undefined || x === null) return;
       const acc = Math.abs(x) + Math.abs(y) + Math.abs(z);
       const now = Date.now();
-      if (acc > 15 && acc !== lastAcc && now - lastTime > 1000) {
-        lastTime = now; lastAcc = acc;
+      if (acc > 35 && now - lastTime > 2500) {
+        lastTime = now;
         playDropAnimation(Math.floor(Math.random() * totalRanks) + 1);
       }
     };
     window.addEventListener('devicemotion', onMotion);
     return () => window.removeEventListener('devicemotion', onMotion);
-  }, [totalRanks, playDropAnimation]);
+  }, [totalRanks, playDropAnimation, isDropping, markStage]);
 
   // ── DRAG GESTURE (moves position on the coordinate grid) ────────────────
   const bind = useDrag(({ last, direction: [dx, dy], distance: [distX, distY] }) => {
