@@ -145,6 +145,30 @@ const zoomButtonStyle = {
   fontSize: '9px', letterSpacing: '2px', zIndex: 110,
 };
 
+// ── THE MARK: paint-drip shapes ─────────────────────────────────────────────
+// Poured from the top of the screen, like paint dripping down a wall: wide
+// at the pour mouth, bulging into an organic belly, tapering to a point.
+const DRIP_X_PERCENTS = [0.05, 0.18, 0.32, 0.50, 0.68, 0.82, 0.95];
+
+function generateDrips(width, height) {
+  const paths = DRIP_X_PERCENTS.map((xPct, i) => {
+    const x = xPct * width;
+    const dripWidth = 30 + Math.random() * 50;       // 30-80px
+    const dripHeight = height * (0.55 + Math.random() * 0.40); // 55-95% of screen
+    const belly = dripHeight * 0.8;
+    return {
+      id: i,
+      x,
+      d: `M ${x - 20} 0 Q ${x} 10 ${x + 20} 0 `
+       + `L ${x + dripWidth / 2} ${belly} `
+       + `Q ${x} ${dripHeight} ${x - dripWidth / 2} ${belly} Z`,
+      duration: 0.6 + Math.random() * 0.4,   // 0.6-1.0s
+      delay: Math.random() * 200,            // 0-200ms stagger
+    };
+  });
+  return { width, height, paths };
+}
+
 function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, darkMode, huntActive, onHuntComplete, onHuntStop }) {
   console.log('SpatialMap rankings prop:', rankings?.length);
 
@@ -171,7 +195,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
   // idle -> spreading -> keyboard -> confirmed -> sharing -> receding -> idle
   const [markStage, setMarkStage]   = useState('idle');
   const [markColor, setMarkColor]   = useState(null);
-  const [markOrigin, setMarkOrigin] = useState({ x: 0, y: 0 });
+  const [markDrips, setMarkDrips]   = useState({ width: 0, height: 0, paths: [] });
   const [markVideo, setMarkVideo]   = useState(null);
   const [markWord, setMarkWord]     = useState('');
   const [markSnapshotUrl, setMarkSnapshotUrl] = useState(null);
@@ -310,12 +334,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
     });
   }, [dropApi, rankToCoord, totalRanks]);
 
-  // ── THE MARK: liquid spread → strip keyboard → snapshot → recede ────────
-  const startMark = useCallback((color, origin) => {
+  // ── THE MARK: paint drips → strip keyboard → snapshot → recede ──────────
+  const startMark = useCallback((color) => {
     if (!currentVideo) return;
     setMarkVideo(currentVideo);
     setMarkColor(color);
-    setMarkOrigin(origin);
+    setMarkDrips(generateDrips(window.innerWidth, window.innerHeight));
     setMarkWord('');
     setShowColorWheel(false);
     setDotState('hidden');
@@ -1099,7 +1123,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
             <ColorWheel
               videoId={currentVideo.video_id}
               userId={userId}
-              onColorSelected={(color, origin) => startMark(color, origin)}
+              onColorSelected={(color) => startMark(color)}
             />
           </div>
         </div>
@@ -1124,11 +1148,22 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
               <img src={markVideo.thumbnail_url} alt=""
                    style={{ width:'100%', height:'100%', objectFit:'cover', opacity:0.25 }} />
             )}
-            <div style={{
-              position:'absolute', inset:0, backgroundColor: markColor.hex, opacity:0.7,
-              clipPath: `circle(${spreadOn ? 150 : 0}% at ${markOrigin.x}px ${markOrigin.y}px)`,
-              transition: markStage === 'receding' ? 'clip-path 0.8s ease' : 'clip-path 1.2s ease-out',
-            }} />
+            {markDrips.width > 0 && (
+              <svg width="100%" height="100%" preserveAspectRatio="none"
+                   viewBox={`0 0 ${markDrips.width} ${markDrips.height}`}
+                   style={{ position:'absolute', inset:0, display:'block' }}>
+                {markDrips.paths.map(drip => (
+                  <path key={drip.id} d={drip.d} fill={markColor.hex} opacity={0.85}
+                        style={{
+                          transformOrigin: `${drip.x}px 0px`,
+                          transform: spreadOn ? 'scaleY(1)' : 'scaleY(0)',
+                          transition: markStage === 'receding'
+                            ? 'transform 0.8s cubic-bezier(0.25,0.46,0.45,0.94)'
+                            : `transform ${drip.duration}s cubic-bezier(0.25,0.46,0.45,0.94) ${drip.delay}ms`,
+                        }} />
+                ))}
+              </svg>
+            )}
             {(markStage === 'confirmed' || markStage === 'sharing' || markStage === 'receding') && (
               <div style={{
                 position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
