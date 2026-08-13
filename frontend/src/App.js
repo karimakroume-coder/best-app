@@ -75,8 +75,12 @@ function Rankings() {
                     backdropFilter: 'blur(8px)' }}>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span style={{ color: '#C9A84C', fontSize: '20px',
-                         fontWeight: 'bold', letterSpacing: '6px' }}>BEST</span>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+            <span style={{ fontFamily: 'Pacifico, cursive', color: '#C8A951',
+                           fontSize: '20px', lineHeight: 1 }}>BEST</span>
+            <span style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+                           fontSize: '10px', letterSpacing: '6px' }}>VIDEO RANKING</span>
+          </div>
           <div style={{ display: 'flex', gap: '4px', marginLeft: '16px' }}>
             {CATEGORIES.map(cat => (
               <button key={cat.value} onClick={() => setSelectedCategory(cat.value)}

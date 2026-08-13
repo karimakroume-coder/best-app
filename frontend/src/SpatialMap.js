@@ -25,6 +25,28 @@ function getRankStyle(rank) {
   return { color: '#444444', fontSize: '20px', fontWeight: 'light' };
 }
 
+// ── VINTAGE RETRO RANK NUMBER (single card view only) ──────────────────────
+const RETRO_GOLD_SHADOW =
+  '3px 3px 0 #C8A951, 6px 6px 0 #B8860B, 9px 9px 0 #8B6914, 12px 12px 0 rgba(0,0,0,0.6)';
+const RETRO_SILVER_SHADOW =
+  '2px 2px 0 #A8A9AD, 4px 4px 0 #777777, 6px 6px 0 rgba(0,0,0,0.5)';
+
+function getRetroRankStyle(rank) {
+  const base = {
+    fontFamily: 'Bebas Neue, sans-serif',
+    color: '#F5E6C8',
+    letterSpacing: '4px',
+  };
+  if (rank === 1) return { ...base, fontSize: '120px', textShadow: RETRO_GOLD_SHADOW };
+  if (rank <= 3)  return { ...base, fontSize: '96px', textShadow: RETRO_SILVER_SHADOW };
+  if (rank <= 10) return { ...base, fontSize: '72px',
+    textShadow: '2px 2px 0 #8B6914, 4px 4px 0 rgba(0,0,0,0.5)' };
+  if (rank <= 50) return { ...base, fontSize: '48px',
+    textShadow: '1px 1px 0 #8B6914, 2px 2px 0 rgba(0,0,0,0.5)' };
+  return { ...base, fontSize: '32px', color: '#8B7355',
+    textShadow: '1px 1px 0 rgba(0,0,0,0.5)' };
+}
+
 // ── PERMANENT COORDINATE GRID ─────────────────────────────────────────────
 // Diamond spiral: ring d holds every (x,y) with |x|+|y|=d. Ring 0 is rank 1.
 // Each ring is emitted axis points first (E,W,N,S) then the remaining
@@ -770,14 +792,23 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
   // ── SINGLE CARD VIEW ────────────────────────────────────────────────────
   const isFlagged = !!fireflaggedVideos[currentVideo.video_id];
   const dimmedByDarkMode = darkMode && !isFlagged;
+  const retroBg = darkMode ? '#000000' : '#0D0800';
   return (
-    <div style={{ width:'100vw', height:'100vh', backgroundColor:bgColor,
+    <div style={{ width:'100vw', height:'100vh', backgroundColor:retroBg,
                   position:'relative', overflow:'hidden', touchAction:'none',
                   userSelect:'none' }}
          {...bind()} {...pinchBind()}
          onTouchStart={onTouchStartNav} onTouchEnd={onTouchEndNav}
          onDoubleClick={() => { if (markStage === 'idle') navigateToCoord(0, 0); }}
          onClick={() => { if (markStage === 'idle' && dotState === 'hidden') setDotState('single'); }}>
+
+      {/* VIGNETTE */}
+      <div style={{ position:'fixed', inset:0, zIndex:5, pointerEvents:'none',
+                    background:'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
+
+      {/* GRAIN TEXTURE */}
+      <div style={{ position:'fixed', inset:0, zIndex:6, pointerEvents:'none', opacity:0.06,
+                    backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
 
       {/* VIDEO CARD */}
       <animated.div style={{ ...springs, width:'100%', height:'100%',
@@ -801,25 +832,60 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
                 pointerEvents:'none' }} />
 </div>
 
+        {/* BEST LOGO */}
+        <div style={{ position:'relative', zIndex:2, textAlign:'center',
+                      fontFamily:'Pacifico, cursive', fontSize:'48px', color:'#F5E6C8',
+                      textShadow:'2px 2px 0 #C8A951, 4px 4px 0 #B8860B, 6px 6px 0 #8B6914, 8px 8px 0 rgba(0,0,0,0.5)',
+                      marginBottom:'8px' }}>
+          BEST
+        </div>
+
         {/* RANK NUMBER */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
-          <div style={{ ...getRankStyle(currentVideo.rank),
-                        textShadow: currentVideo.rank === 1 ? '0 0 40px #C9A84C' : 'none',
+          <div style={{ ...getRetroRankStyle(currentVideo.rank),
                         animation: currentVideo.rank === 1 ? 'pulse 3s infinite' : 'none' }}>
             #{currentVideo.rank}
           </div>
-          <div style={{ color:'#FFFFFF', fontSize:'16px', fontWeight:'bold',
-                        marginTop:'8px', maxWidth:'320px', textAlign:'center',
-                        textShadow:'0 0 20px rgba(0,0,0,0.8)', padding:'0 16px' }}>
+
+          {/* CURVED SWOOSH */}
+          <svg width="200" height="40" viewBox="0 0 200 40" style={{ display:'block', margin:'0 auto' }}>
+            <path d="M 20 10 Q 100 40 180 10"
+                  stroke="#C8A951" strokeWidth="3" fill="none" strokeLinecap="round" />
+            <path d="M 175 5 Q 185 10 180 20"
+                  stroke="#C8A951" strokeWidth="3" fill="none" strokeLinecap="round" />
+          </svg>
+
+          <div style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'22px', color:'#F5E6C8',
+                        letterSpacing:'3px', textAlign:'center',
+                        marginTop:'4px', maxWidth:'320px', padding:'0 16px' }}>
             {currentVideo.title}
           </div>
-          <div style={{ color:'#777', fontSize:'12px', marginTop:'4px',
-                        letterSpacing:'1px' }}>
+          <div style={{ fontFamily:'Arial, sans-serif', fontSize:'12px', color:'#C8A951',
+                        letterSpacing:'4px', textTransform:'uppercase',
+                        textAlign:'center', marginTop:'6px' }}>
             {currentVideo.channel_name}
           </div>
-          <div style={{ color:'#C9A84C', fontSize:'11px', marginTop:'8px',
-                        letterSpacing:'2px' }}>
-            BEST {currentVideo.total_score}
+
+          {/* SCORE BAR */}
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
+                        gap:'10px', marginTop:'14px' }}>
+            <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'20px',
+                          color:'#F5E6C8', letterSpacing:'1px' }}>
+              {currentVideo.total_score}
+            </span>
+            <div style={{ width:'56px', height:'2px',
+                          background:'linear-gradient(to right, transparent, #C8A951, #C8A951, transparent)' }} />
+            <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px',
+                          color:'#8B6914', letterSpacing:'1px' }}>
+              100
+            </span>
+          </div>
+          <div style={{ textAlign:'center', color:'#C8A951', fontSize:'14px', marginTop:'6px' }}>
+            ★
+          </div>
+          <div style={{ textAlign:'center', color:'#C8A951', fontSize:'8px',
+                        letterSpacing:'3px', marginTop:'4px' }}>
+            GLOBAL COMMUNITY VOTES
           </div>
         </div>
 
