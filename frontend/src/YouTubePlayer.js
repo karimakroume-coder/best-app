@@ -84,7 +84,8 @@ function YouTubePlayer({
         playerRef.current = null;
       }
     };
-  }, [videoId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, [videoId]);
 
   useEffect(() => {
     if (!playerRef.current || !ready) return;
