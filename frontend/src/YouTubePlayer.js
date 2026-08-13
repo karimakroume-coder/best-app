@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 import React, { useEffect, useRef, useState } from 'react';
 
 let youTubeAPILoaded = false;
@@ -84,8 +85,7 @@ function YouTubePlayer({
         playerRef.current = null;
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-}, [videoId]);
+  }, [videoId]);
 
   useEffect(() => {
     if (!playerRef.current || !ready) return;
