@@ -31,7 +31,7 @@ function Rankings() {
     const token = localStorage.getItem('best_token');
     if (email) setUserEmail(email);
     if (token) {
-      axios.get('http://192.168.11.152:8000/user/profile', {
+      axios.get('https://web-production-a267.up.railway.app/user/profile', {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => setDiscoveryScore(res.data.discovery_score))
         .catch(() => {});
@@ -41,8 +41,8 @@ function Rankings() {
   useEffect(() => {
     setLoading(true);
     const url = selectedCategory === 'global'
-      ? 'http://192.168.11.152:8000/ranking/global'
-      : `http://192.168.11.152:8000/ranking/category/${selectedCategory}`;
+      ? 'https://web-production-a267.up.railway.app/ranking/global'
+      : `https://web-production-a267.up.railway.app/ranking/category/${selectedCategory}`;
     axios.get(url)
       .then(res => {
         const data = res.data;

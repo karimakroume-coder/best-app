@@ -486,7 +486,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
     e.stopPropagation();
     if (!video || fireflaggedVideos[video.video_id]) return;
     try {
-      await axios.post('http://192.168.11.152:8000/fireflag/place', {
+      await axios.post('https://web-production-a267.up.railway.app/fireflag/place', {
         user_id: userId,
         video_id: video.video_id,
       });
@@ -508,7 +508,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
     e.stopPropagation();
     if (!video || personalBestVideos[video.video_id]) return;
     try {
-      await axios.post('http://192.168.11.152:8000/personal-best/add', {
+      await axios.post('https://web-production-a267.up.railway.app/personal-best/add', {
         user_id: userId,
         video_id: video.video_id,
         rank: video.rank,

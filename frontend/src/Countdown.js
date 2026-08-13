@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
-const API_BASE = 'http://192.168.11.152:8000';
+const API_BASE = 'https://web-production-a267.up.railway.app';
 const LAUNCH_DATE = new Date('2027-03-01T00:00:00Z');
 const FOUNDING_CREATORS_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSd8qGQvtEWIiojIGT01MEYwUiNpZ89_n7Kj5zbL0BX85YDleA/viewform?usp=header';
 

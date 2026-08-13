@@ -19,7 +19,7 @@ function ColorWheel({ videoId, userId, onColorSelected }) {
     if (color.locked) return;
     setSelected(color.name);
     const origin = { x: e.clientX, y: e.clientY };
-    axios.post('http://192.168.11.152:8000/color/assign', {
+    axios.post('https://web-production-a267.up.railway.app/color/assign', {
       user_id: userId,
       video_id: videoId,
       color: color.name
