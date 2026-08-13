@@ -1,3 +1,4 @@
+import YouTubePlayer from './YouTubePlayer';
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useSpring, animated } from '@react-spring/web';
 import { useDrag, usePinch } from '@use-gesture/react';
@@ -673,14 +674,17 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
                               transition:'opacity 0.4s ease' }}>
 
         {/* THUMBNAIL */}
-        {currentVideo.thumbnail_url && (
-          <div style={{ position:'absolute', inset:0 }}>
-            <img src={currentVideo.thumbnail_url} alt=""
-                 style={{ width:'100%', height:'100%', objectFit:'cover', opacity:0.25 }} />
-            <div style={{ position:'absolute', inset:0,
-                          background:'linear-gradient(to bottom, rgba(10,10,10,0.3) 0%, rgba(10,10,10,0.8) 100%)' }} />
-          </div>
-        )}
+        <div style={{ position:'absolute', inset:0, overflow:'hidden' }}>
+  <YouTubePlayer
+    videoId={currentVideo.video_id}
+    startSeconds={currentVideo.peak_moment_seconds || 0}
+    volume={zoomLevel === 1 ? 20 : 0}
+    playing={!showColorWheel && zoomLevel === 1}
+  />
+  <div style={{ position:'absolute', inset:0,
+                background:'linear-gradient(to bottom, rgba(10,10,10,0.1), rgba(10,10,10,0.7))',
+                pointerEvents:'none' }} />
+</div>
 
         {/* RANK NUMBER */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>

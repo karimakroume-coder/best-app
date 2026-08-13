@@ -4,6 +4,7 @@ import axios from 'axios';
 import Login from './Login';
 import Register from './Register';
 import SpatialMap from './SpatialMap';
+import Countdown from './Countdown';
 import fireflagPng from './assets/icons/FIREFLAG.png';
 
 const CATEGORIES = [
@@ -20,7 +21,6 @@ function Rankings() {
   const [selectedCategory, setSelectedCategory] = useState('global');
   const [userEmail, setUserEmail]             = useState('');
   const [discoveryScore, setDiscoveryScore]   = useState(null);
-  const [assignedColors, setAssignedColors]   = useState({});
   const [darkMode, setDarkMode]               = useState(false);
   const [huntActive, setHuntActive]           = useState(false);
 
@@ -171,8 +171,7 @@ function Rankings() {
               setHuntActive(false);
             }}
             onHuntStop={() => setHuntActive(false)}
-            onColorAssigned={(videoId, color) => {
-              setAssignedColors(prev => ({...prev, [videoId]: color}));
+            onColorAssigned={() => {
               setDiscoveryScore(prev => prev !== null ? prev + 5 : 5);
             }}
           />
@@ -183,22 +182,15 @@ function Rankings() {
 }
 
 function App() {
-  const [loggedIn, setLoggedIn] = useState(!!localStorage.getItem('best_token'));
-
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Rankings />} />
         <Route path="/login"
-          element={<Login onLogin={() => {
-            setLoggedIn(true);
-            window.location.href = '/';
-          }} />} />
+          element={<Login onLogin={() => { window.location.href = '/'; }} />} />
         <Route path="/register"
-          element={<Register onLogin={() => {
-            setLoggedIn(true);
-            window.location.href = '/';
-          }} />} />
+          element={<Register onLogin={() => { window.location.href = '/'; }} />} />
+        <Route path="/launch" element={<Countdown />} />
       </Routes>
     </BrowserRouter>
   );

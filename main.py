@@ -15,7 +15,12 @@ load_dotenv()
 
 app = FastAPI(title="BEST API", version="1.0.0")
 scheduler = BackgroundScheduler()
-scheduler.add_job(run_ranking_pipeline, "interval", minutes=15)
+scheduler.add_job(
+    run_ranking_pipeline,
+    "interval",
+    minutes=15,
+    next_run_time=datetime.now(timezone.utc) + timedelta(minutes=15),
+)
 scheduler.start()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
 
@@ -123,6 +128,20 @@ def get_video_history(video_id: str):
     response = client.table("rankings").select("rank, score, recorded_at, country_code").eq("video_id", video_id).order("recorded_at", desc=False).execute()
     return response.data
 
+@app.post("/early-access")
+def join_early_access(payload: dict):
+    email = payload.get("email", "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="A valid email is required")
+    client = get_client()
+    try:
+        client.table("early_access").insert({"email": email}).execute()
+    except Exception as e:
+        if "duplicate" in str(e).lower() or "unique" in str(e).lower():
+            raise HTTPException(status_code=409, detail="Email already on the list")
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"message": "You are on the list"}
+
 @app.post("/color/assign")
 def assign_color(payload: dict):
     valid_colors = ["red","blue","green","yellow","black","white","gold"]
@@ -177,3 +196,7 @@ def get_color_distribution(video_id: str):
         counts[c] = counts.get(c, 0) + 1
     distribution = {c: round((n/total)*100, 1) for c, n in counts.items()}
     return {"video_id": video_id, "total": total, "distribution": distribution}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
