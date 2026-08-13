@@ -30,14 +30,5 @@ def run_all_agents():
 
 
 if __name__ == "__main__":
-    print("BEST Agent Manager starting...")
-    print("Press Ctrl+C to stop.\n")
-
-    run_count = 0
-    while True:
-        run_count += 1
-        print(f"\n--- RUN #{run_count} ---")
-        run_all_agents()
-        print(f"\nSleeping 30 minutes until next run...")
-        print(f"Next run at: {datetime.now().strftime('%H:%M')}")
-        time.sleep(1800)
+    print("BEST Agent Manager starting a single run...")
+    run_all_agents()
