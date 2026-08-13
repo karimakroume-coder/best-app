@@ -119,7 +119,7 @@ function letterPositionForIndex(i) {
 const zoomButtonStyle = {
   position: 'absolute', top: '64px', right: '16px',
   backgroundColor: '#0A0A0A', border: '1px solid #444',
-  color: '#AAA', padding: '4px 10px', cursor: 'pointer',
+  color: '#AAA', padding: '10px 10px', cursor: 'pointer',
   fontSize: '9px', letterSpacing: '2px', zIndex: 110,
 };
 
@@ -461,11 +461,18 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
   }, [totalRanks, playDropAnimation, isDropping, markStage]);
 
   // ── DRAG GESTURE (moves position on the coordinate grid) ────────────────
+  // pointerNavRef marks when this pointer-based path just handled a swipe,
+  // so the raw-touch fallback below (needed because @use-gesture's
+  // pointer-event handling doesn't reliably fire on some Android/Chrome
+  // builds) knows not to double-navigate for the same gesture.
+  const pointerNavRef = useRef(0);
   const bind = useDrag(({ last, direction: [dx, dy], distance: [distX, distY] }) => {
     if (!last || markStage !== 'idle') return;
     if (Math.abs(distX) > Math.abs(distY) && distX > 50) {
+      pointerNavRef.current = Date.now();
       navigateToCoord(currentX + (dx < 0 ? 1 : -1), currentY);
     } else if (Math.abs(distY) > Math.abs(distX) && distY > 50) {
+      pointerNavRef.current = Date.now();
       navigateToCoord(currentX, currentY + (dy < 0 ? 1 : -1));
     }
   }, { filterTaps: true, threshold: 10 });
@@ -478,6 +485,36 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
     else if (scale > 1.3 && zoomLevel === 5) setZoomLevel(3);
     else if (scale > 1.3 && zoomLevel === 3) setZoomLevel(1);
   });
+
+  // ── RAW TOUCH FALLBACK (swipe navigate + reveal the dot on tap) ─────────
+  // Plain touchstart/touchend, independent of @use-gesture, for real Android
+  // browsers where the pointer-event path above doesn't reliably fire.
+  // Skips itself if pointerNavRef shows useDrag just handled this gesture.
+  const touchStartRef = useRef(null);
+
+  const onTouchStartNav = useCallback((e) => {
+    if (e.touches.length !== 1) { touchStartRef.current = null; return; }
+    const t = e.touches[0];
+    touchStartRef.current = { x: t.clientX, y: t.clientY };
+  }, []);
+
+  const onTouchEndNav = useCallback((e) => {
+    const start = touchStartRef.current;
+    touchStartRef.current = null;
+    if (!start || markStage !== 'idle') return;
+    if (Date.now() - pointerNavRef.current < 250) return;
+    if (e.changedTouches.length !== 1) return;
+    const t = e.changedTouches[0];
+    const deltaX = t.clientX - start.x;
+    const deltaY = t.clientY - start.y;
+    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+      navigateToCoord(currentX + (deltaX < 0 ? 1 : -1), currentY);
+    } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 50) {
+      navigateToCoord(currentX, currentY + (deltaY < 0 ? 1 : -1));
+    } else if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10 && dotState === 'hidden') {
+      setDotState('single');
+    }
+  }, [markStage, currentX, currentY, navigateToCoord, dotState]);
 
   const cycleZoom = useCallback(() => {
     setZoomLevel(prev => prev === 1 ? 3 : prev === 3 ? 5 : prev === 5 ? 99 : 1);
@@ -542,7 +579,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
     <div style={{ width:'100vw', height:'100vh', backgroundColor:bgColor,
                   position:'relative', overflow:'hidden', touchAction:'none' }}
          {...pinchBind()}>
-      <button onClick={(e) => { e.stopPropagation(); cycleZoom(); }} style={zoomButtonStyle}>
+      <button onClick={(e) => { e.stopPropagation(); cycleZoom(); }}
+              onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); cycleZoom(); }}
+              style={zoomButtonStyle}>
         ZOOM {zoomLevel}×
       </button>
 
@@ -671,7 +710,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
                     gridTemplateRows:'repeat(3,1fr)', gap:'3px', padding:'3px',
                     touchAction:'none', position:'relative' }}
            {...pinchBind()}>
-        <button onClick={(e) => { e.stopPropagation(); cycleZoom(); }} style={zoomButtonStyle}>
+        <button onClick={(e) => { e.stopPropagation(); cycleZoom(); }}
+                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); cycleZoom(); }}
+                style={zoomButtonStyle}>
           ZOOM {zoomLevel}×
         </button>
         {cells.map(({ dx, dy }) => {
@@ -734,6 +775,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
                   position:'relative', overflow:'hidden', touchAction:'none',
                   userSelect:'none' }}
          {...bind()} {...pinchBind()}
+         onTouchStart={onTouchStartNav} onTouchEnd={onTouchEndNav}
          onDoubleClick={() => { if (markStage === 'idle') navigateToCoord(0, 0); }}
          onClick={() => { if (markStage === 'idle' && dotState === 'hidden') setDotState('single'); }}>
 
@@ -752,6 +794,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
     startSeconds={currentVideo.peak_moment_seconds || 0}
     volume={zoomLevel === 1 ? 20 : 0}
     playing={!showColorWheel && zoomLevel === 1}
+    thumbnailUrl={currentVideo.thumbnail_url}
   />
   <div style={{ position:'absolute', inset:0,
                 background:'linear-gradient(to bottom, rgba(10,10,10,0.1), rgba(10,10,10,0.7))',
@@ -854,20 +897,23 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
         PINCH TO ZOOM · SWIPE TO NAVIGATE · DOUBLE TAP FOR #1
       </div>
 
-      {/* RANDOM BUTTON (desktop) — triggers a new drop animation */}
+      {/* RANDOM BUTTON — triggers a new drop animation */}
       <button
         onClick={(e) => { e.stopPropagation();
           playDropAnimation(Math.floor(Math.random() * totalRanks) + 1); }}
+        onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
+          playDropAnimation(Math.floor(Math.random() * totalRanks) + 1); }}
         style={{ position:'absolute', top:'64px', left:'16px',
                  backgroundColor:'#0A0A0A', border:'1px solid #444',
-                 color:'#AAA', padding:'4px 10px', cursor:'pointer',
+                 color:'#AAA', padding:'10px 10px', cursor:'pointer',
                  fontSize:'9px', letterSpacing:'2px', zIndex:110 }}>
         RANDOM
       </button>
 
-      {/* ZOOM BUTTON (desktop pinch fallback) */}
+      {/* ZOOM BUTTON (pinch fallback) */}
       <button
         onClick={(e) => { e.stopPropagation(); cycleZoom(); }}
+        onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); cycleZoom(); }}
         style={zoomButtonStyle}>
         ZOOM {zoomLevel}×
       </button>
@@ -878,10 +924,15 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
 
           {dotState === 'single' && (
             <div onClick={(e) => { e.stopPropagation(); setDotState('three'); }}
-                 style={{ width:'12px', height:'12px', borderRadius:'50%',
-                          backgroundColor:'#FFFFFF', cursor:'pointer',
-                          boxShadow:'0 0 8px rgba(255,255,255,0.5)',
-                          animation:'fadeIn 0.3s ease' }} />
+                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setDotState('three'); }}
+                 style={{ width:'44px', height:'44px', display:'flex',
+                          alignItems:'center', justifyContent:'center',
+                          cursor:'pointer' }}>
+              <div style={{ width:'12px', height:'12px', borderRadius:'50%',
+                            backgroundColor:'#FFFFFF',
+                            boxShadow:'0 0 8px rgba(255,255,255,0.5)',
+                            animation:'fadeIn 0.3s ease', pointerEvents:'none' }} />
+            </div>
           )}
 
           {dotState === 'three' && (
@@ -894,6 +945,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
               {/* LEFT DOT — COLOR */}
               <div
                 onClick={(e) => { e.stopPropagation(); setShowColorWheel(true); setDotState('hidden'); }}
+                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
+                  setShowColorWheel(true); setDotState('hidden'); }}
                 style={{ position:'absolute', bottom:'32px', right:'40px',
                          width:'28px', height:'28px', borderRadius:'50%',
                          backgroundColor:'#C9A84C', cursor:'pointer',
@@ -906,6 +959,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
               <div
                 onClick={(e) => { e.stopPropagation();
                   window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
+                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
+                  window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
                 style={{ position:'absolute', bottom:'40px', right:'-16px',
                          width:'28px', height:'28px', borderRadius:'50%',
                          backgroundColor:'#E74C3C', cursor:'pointer',
@@ -917,6 +972,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
               {/* TOP DOT — PERSONAL BEST 100 */}
               <div
                 onClick={(e) => addToPersonalBest(e, currentVideo)}
+                onTouchEnd={(e) => { e.preventDefault(); addToPersonalBest(e, currentVideo); }}
                 style={{ position:'absolute', bottom:'64px', right:'8px',
                          width:'28px', height:'28px', borderRadius:'50%',
                          backgroundColor: personalBestAnimating === currentVideo.video_id
@@ -932,9 +988,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
               </div>
               {/* DISMISS */}
               <div onClick={(e) => { e.stopPropagation(); setDotState('single'); }}
-                   style={{ position:'absolute', top:'-8px', right:'-8px',
+                   onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setDotState('single'); }}
+                   style={{ position:'absolute', top:'-16px', right:'-16px',
                             color:'#333', fontSize:'10px', cursor:'pointer',
-                            padding:'4px' }}>✕</div>
+                            padding:'12px' }}>✕</div>
             </div>
           )}
 

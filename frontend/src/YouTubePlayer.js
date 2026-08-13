@@ -30,6 +30,7 @@ function YouTubePlayer({
   startSeconds = 0,
   volume = 20,
   playing = true,
+  thumbnailUrl = null,
   style = {}
 }) {
   const containerRef = useRef(null);
@@ -114,20 +115,40 @@ function YouTubePlayer({
         inset: 0,
         overflow: 'hidden',
         pointerEvents: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#000000',
         ...style
       }}
     >
+      {thumbnailUrl && (
+        <img
+          src={thumbnailUrl}
+          alt=""
+          style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            objectFit: 'cover', opacity: ready ? 0 : 1,
+            transition: 'opacity 0.3s ease',
+          }}
+        />
+      )}
       <style>{`
+        /*
+         * Centering via flexbox on the container, not a CSS transform on the
+         * iframe itself: Chrome-for-Android has a known compositor bug where
+         * a transform applied directly to an iframe/video renders it black
+         * (audio still plays) because the hardware video overlay surface
+         * doesn't follow the transformed layer. Flex layout achieves the
+         * same oversized-crop-to-cover effect without touching transform.
+         */
         .youtube-player-container iframe {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
           width: 177.78vh !important;
           height: 100vh !important;
           min-width: 100%;
           min-height: 56.25vw;
           border: none;
+          flex-shrink: 0;
         }
       `}</style>
     </div>
