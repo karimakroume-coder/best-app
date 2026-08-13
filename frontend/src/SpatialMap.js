@@ -123,7 +123,7 @@ const zoomButtonStyle = {
   fontSize: '9px', letterSpacing: '2px', zIndex: 110,
 };
 
-function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, onHuntComplete, onHuntStop }) {
+function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, darkMode, huntActive, onHuntComplete, onHuntStop }) {
   console.log('SpatialMap rankings prop:', rankings?.length);
 
   const [currentX, setCurrentX]               = useState(0);
@@ -138,6 +138,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
   const [fireflaggedVideos, setFireflaggedVideos] = useState({});
   const [fireflagAnimating, setFireflagAnimating] = useState(null);
   const [fireflagError, setFireflagError] = useState(null);
+  const [personalBestVideos, setPersonalBestVideos] = useState({});
+  const [personalBestAnimating, setPersonalBestAnimating] = useState(null);
+  const [personalBestError, setPersonalBestError] = useState(null);
+  const [personalBestPointsFlash, setPersonalBestPointsFlash] = useState(false);
   const [huntTargetRank, setHuntTargetRank] = useState(null);
   const [huntDiscovered, setHuntDiscovered] = useState(false);
 
@@ -150,6 +154,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
   const [markWord, setMarkWord]     = useState('');
   const [markSnapshotUrl, setMarkSnapshotUrl] = useState(null);
   const [spreadOn, setSpreadOn]     = useState(false);
+  const [shareFallback, setShareFallback] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const markCaptureRef = useRef(null);
 
   const totalRanks = rankings.length;
@@ -292,6 +298,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
     setShowColorWheel(false);
     setDotState('hidden');
     setSpreadOn(false);
+    setShareFallback(false);
+    setLinkCopied(false);
     setMarkStage('spreading');
   }, [currentVideo]);
 
@@ -310,11 +318,42 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
         await navigator.share({ files: [file], title: 'BEST', text: markWord });
       } else if (navigator.share) {
         await navigator.share({ title: 'BEST', text: markWord });
+      } else {
+        setShareFallback(true);
       }
     } catch (err) {
-      console.log('Share error:', err);
+      if (err.name !== 'AbortError') {
+        console.log('Share error:', err);
+        setShareFallback(true);
+      }
     }
   }, [markWord]);
+
+  const handleSaveToGallery = useCallback((snapshotUrl, video) => {
+    if (!snapshotUrl) return;
+    const link = document.createElement('a');
+    link.href = snapshotUrl;
+    link.download = `best-mark-${video ? video.video_id : Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, []);
+
+  const handleCopyLink = useCallback(async (video) => {
+    if (!video) return;
+    try {
+      await navigator.clipboard.writeText(`https://youtube.com/watch?v=${video.video_id}`);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.log('Copy link error:', err);
+    }
+  }, []);
+
+  const dismissShareFallback = useCallback(() => {
+    setShareFallback(false);
+    setMarkStage('receding');
+  }, []);
 
   // spreading: 0% -> 150% over 1.2s ease-out, then hand off to the keyboard
   useEffect(() => {
@@ -361,11 +400,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
   }, [markStage, markVideo]);
 
   // sharing: show the share button for 3 seconds, then recede
+  // (paused while the share-fallback overlay is open — user needs time to tap SAVE/COPY)
   useEffect(() => {
-    if (markStage !== 'sharing') return;
+    if (markStage !== 'sharing' || shareFallback) return;
     const t = setTimeout(() => setMarkStage('receding'), 3000);
     return () => clearTimeout(t);
-  }, [markStage]);
+  }, [markStage, shareFallback]);
 
   // receding: 150% -> 0% over 0.8s, word fades, then leave the permanent mark
   useEffect(() => {
@@ -462,6 +502,31 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
       console.log('Fireflag place error:', err);
     }
   }, [fireflaggedVideos, userId]);
+
+  // ── PERSONAL BEST 100 ────────────────────────────────────────────────────
+  const addToPersonalBest = useCallback(async (e, video) => {
+    e.stopPropagation();
+    if (!video || personalBestVideos[video.video_id]) return;
+    try {
+      await axios.post('http://192.168.11.152:8000/personal-best/add', {
+        user_id: userId,
+        video_id: video.video_id,
+        rank: video.rank,
+        score: video.total_score,
+      });
+      setPersonalBestVideos(prev => ({ ...prev, [video.video_id]: true }));
+      setPersonalBestAnimating(video.video_id);
+      setTimeout(() => setPersonalBestAnimating(v => v === video.video_id ? null : v), 500);
+      setPersonalBestPointsFlash(true);
+      setTimeout(() => setPersonalBestPointsFlash(false), 1500);
+      if (onPersonalBestAdded) onPersonalBestAdded(video.video_id);
+    } catch (err) {
+      const message = err.response?.data?.detail || 'Could not add to Personal Best 100';
+      setPersonalBestError(message);
+      setTimeout(() => setPersonalBestError(m => m === message ? null : m), 3000);
+      console.log('Personal Best add error:', err);
+    }
+  }, [personalBestVideos, userId, onPersonalBestAdded]);
 
   const bgColor = darkMode ? '#000000' : '#0A0A0A';
 
@@ -842,11 +907,47 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
                          animation:'popIn 0.3s ease' }}>
                 ▶
               </div>
+              {/* TOP DOT — PERSONAL BEST 100 */}
+              <div
+                onClick={(e) => addToPersonalBest(e, currentVideo)}
+                style={{ position:'absolute', bottom:'64px', right:'8px',
+                         width:'28px', height:'28px', borderRadius:'50%',
+                         backgroundColor: personalBestAnimating === currentVideo.video_id
+                           || personalBestVideos[currentVideo.video_id] ? '#C9A84C' : '#FFFFFF',
+                         cursor: personalBestVideos[currentVideo.video_id] ? 'default' : 'pointer',
+                         display:'flex', alignItems:'center', justifyContent:'center',
+                         fontSize:'16px', fontWeight:'bold', color:'#0A0A0A',
+                         boxShadow: personalBestAnimating === currentVideo.video_id
+                           ? '0 0 16px rgba(201,168,76,0.9)' : '0 0 8px rgba(255,255,255,0.5)',
+                         transition:'background-color 0.3s ease, box-shadow 0.3s ease',
+                         animation:'popIn 0.3s ease' }}>
+                {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
+              </div>
               {/* DISMISS */}
               <div onClick={(e) => { e.stopPropagation(); setDotState('single'); }}
                    style={{ position:'absolute', top:'-8px', right:'-8px',
                             color:'#333', fontSize:'10px', cursor:'pointer',
                             padding:'4px' }}>✕</div>
+            </div>
+          )}
+
+          {/* PERSONAL BEST — feedback (error / +50 flash) */}
+          {dotState === 'three' && (personalBestError || personalBestPointsFlash) && (
+            <div style={{ position:'absolute', bottom:'204px', right:'0',
+                          display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
+              {personalBestPointsFlash && (
+                <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',
+                               letterSpacing:'1px', animation:'fadeIn 0.2s ease',
+                               textShadow:'0 0 8px rgba(201,168,76,0.6)' }}>
+                  +50 DISCOVERY
+                </span>
+              )}
+              {personalBestError && (
+                <span style={{ color:'#E74C3C', fontSize:'8px', letterSpacing:'1px',
+                               maxWidth:'140px', textAlign:'right' }}>
+                  {personalBestError.toUpperCase()}
+                </span>
+              )}
             </div>
           )}
         </div>
@@ -916,7 +1017,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
             <StripKeyboard color={markColor.hex} onConfirm={confirmWord} />
           )}
 
-          {markStage === 'sharing' && (
+          {markStage === 'sharing' && !shareFallback && (
             <button
               onClick={() => handleShare(markSnapshotUrl)}
               style={{ position:'absolute', bottom:'60px', left:'50%', transform:'translateX(-50%)',
@@ -926,6 +1027,37 @@ function SpatialMap({ rankings, userId, onColorAssigned, darkMode, huntActive, o
               SHARE
             </button>
           )}
+        </div>
+      )}
+
+      {/* SHARE FALLBACK — full-screen overlay when navigator.share fails or is unavailable */}
+      {shareFallback && markSnapshotUrl && (
+        <div style={{ position:'fixed', inset:0, zIndex:300, backgroundColor:'#000000',
+                      display:'flex', flexDirection:'column', alignItems:'center',
+                      justifyContent:'center' }}>
+          <button onClick={dismissShareFallback}
+            style={{ position:'absolute', top:'20px', right:'20px', backgroundColor:'transparent',
+                     border:'1px solid #333', color:'#777', width:'32px', height:'32px',
+                     borderRadius:'50%', fontSize:'16px', cursor:'pointer', zIndex:301 }}>
+            ×
+          </button>
+          <img src={markSnapshotUrl} alt="Your BEST mark"
+               style={{ maxWidth:'92%', maxHeight:'70%', objectFit:'contain',
+                        borderRadius:'4px', boxShadow:'0 0 40px rgba(0,0,0,0.6)' }} />
+          <div style={{ display:'flex', gap:'12px', marginTop:'32px' }}>
+            <button onClick={() => handleSaveToGallery(markSnapshotUrl, markVideo)}
+              style={{ backgroundColor:'#C9A84C', color:'#0A0A0A', border:'none',
+                       padding:'12px 20px', borderRadius:'20px', fontSize:'11px',
+                       fontWeight:'bold', letterSpacing:'2px', cursor:'pointer' }}>
+              SAVE TO GALLERY
+            </button>
+            <button onClick={() => handleCopyLink(markVideo)}
+              style={{ backgroundColor:'transparent', color:'#FFFFFF', border:'1px solid #444',
+                       padding:'12px 20px', borderRadius:'20px', fontSize:'11px',
+                       fontWeight:'bold', letterSpacing:'2px', cursor:'pointer' }}>
+              {linkCopied ? 'LINK COPIED' : 'COPY LINK'}
+            </button>
+          </div>
         </div>
       )}
 

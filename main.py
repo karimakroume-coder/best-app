@@ -120,12 +120,6 @@ def get_country_ranking(country_code: str):
 def get_video_history(video_id: str):
     client = get_client()
     response = client.table("rankings").select("rank, score, recorded_at, country_code").eq("video_id", video_id).order("recorded_at", desc=False).execute()
-    return results
-
-@app.get("/ranking/history/{video_id}")
-def get_video_history(video_id: str):
-    client = get_client()
-    response = client.table("rankings").select("rank, score, recorded_at, country_code").eq("video_id", video_id).order("recorded_at", desc=False).execute()
     return response.data
 
 @app.post("/early-access")
@@ -196,6 +190,52 @@ def get_color_distribution(video_id: str):
         counts[c] = counts.get(c, 0) + 1
     distribution = {c: round((n/total)*100, 1) for c, n in counts.items()}
     return {"video_id": video_id, "total": total, "distribution": distribution}
+
+@app.post("/personal-best/add")
+def add_personal_best(payload: dict):
+    user_id = payload.get("user_id")
+    video_id = payload.get("video_id")
+    if not user_id or not video_id:
+        raise HTTPException(status_code=400, detail="user_id and video_id are required")
+    client = get_client()
+
+    existing = client.table("personal_best").select("video_id").eq("user_id", user_id).execute().data
+    total = len(existing)
+
+    if any(row["video_id"] == video_id for row in existing):
+        raise HTTPException(status_code=400, detail="Already in your Personal Best 100")
+
+    if total >= 100:
+        raise HTTPException(status_code=400, detail="Personal Best 100 is full")
+
+    client.table("personal_best").insert({
+        "user_id": user_id,
+        "video_id": video_id,
+        "rank_at_add": payload.get("rank"),
+        "score_at_add": payload.get("score"),
+    }).execute()
+
+    user_data = client.table("users").select("discovery_score").eq("user_id", user_id).execute()
+    current_score = user_data.data[0]["discovery_score"] if user_data.data else 0
+    client.table("users").update({"discovery_score": current_score + 50}).eq("user_id", user_id).execute()
+
+    return {"message": "Added to Personal Best 100", "points_earned": 50, "total": total + 1}
+
+@app.get("/personal-best/{user_id}")
+def get_personal_best(user_id: str):
+    client = get_client()
+    result = client.table("personal_best").select("*").eq("user_id", user_id).order("added_at", desc=False).execute()
+    return result.data
+
+@app.delete("/personal-best/remove")
+def remove_personal_best(payload: dict):
+    user_id = payload.get("user_id")
+    video_id = payload.get("video_id")
+    if not user_id or not video_id:
+        raise HTTPException(status_code=400, detail="user_id and video_id are required")
+    client = get_client()
+    client.table("personal_best").delete().eq("user_id", user_id).eq("video_id", video_id).execute()
+    return {"message": "Removed from Personal Best 100"}
 
 if __name__ == "__main__":
     import uvicorn

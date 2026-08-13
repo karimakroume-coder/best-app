@@ -180,7 +180,7 @@ COMPLETE:
 - BEST scoring algorithm (velocity+retention+geo)
 - Automated scheduler every 15 minutes
 - Supabase tables: videos, rankings, users, color_assignments, fireflags
-- FastAPI with 11 endpoints
+- FastAPI with 15 endpoints
 - User authentication (JWT)
 - React spatial map replacing list entirely
 - DROP animation (two-phase spring)
@@ -198,17 +198,17 @@ COMPLETE:
 - Capacitor Android project scaffolded
 - CORS fixed (phone origin allowed)
 - /ranking/global optimized (no longer writes to Supabase on every request — fixed intermittent 500s)
+- YouTube IFrame API — real video playback in single-card view (YouTubePlayer.js embedded in SpatialMap.js, 20% volume, pauses on color wheel)
+- Online AI agents on GitHub Actions (.github/workflows/agents.yml — runs python -m agents.manager every 30 minutes)
 
 IN PROGRESS THIS SESSION:
 - Android PWA installation on phone
 - AI agents system (20 agents, 20 countries)
+- Personal Best 100 implementation (backend endpoints + add button live; no dedicated browse/view screen yet)
 
 COMING NEXT:
 - Daily shared Hunt target (backend endpoint needed)
 - Hunt leaderboard
-- YouTube IFrame API — real video playback replacing thumbnails
-- Personal Best 100 implementation
-- Online AI agents on GitHub Actions
 - React Native conversion (Phase 2)
 - Countdown page for launch
 
