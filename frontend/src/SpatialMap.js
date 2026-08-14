@@ -140,11 +140,29 @@ function letterPositionForIndex(i) {
   };
 }
 
+// ── VINTAGE BUTTON — shared base for RANDOM / ZOOM / WATCH ON YOUTUBE ──────
+// Text-label styling (no fill, square corners) with a guaranteed 44x44
+// touch target regardless of how small the visible padding reads.
+const vintageButtonBase = {
+  fontFamily: 'Bebas Neue, sans-serif',
+  fontSize: '11px',
+  letterSpacing: '4px',
+  color: '#555',
+  backgroundColor: 'transparent',
+  border: '1px solid #333',
+  borderRadius: 0,
+  padding: '6px 14px',
+  minWidth: '44px',
+  minHeight: '44px',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  cursor: 'pointer',
+};
+
 const zoomButtonStyle = {
-  position: 'absolute', top: '64px', right: '16px',
-  backgroundColor: '#0A0A0A', border: '1px solid #444',
-  color: '#AAA', padding: '10px 10px', cursor: 'pointer',
-  fontSize: '9px', letterSpacing: '2px', zIndex: 110,
+  ...vintageButtonBase,
+  position: 'absolute', top: '64px', right: '16px', zIndex: 110,
 };
 
 // ── THE MARK: paint-drip shapes ─────────────────────────────────────────────
@@ -192,6 +210,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [personalBestPointsFlash, setPersonalBestPointsFlash] = useState(false);
   const [flexError, setFlexError] = useState(null);
   const [flexPointsFlash, setFlexPointsFlash] = useState(false);
+  const [flexPreviewUrl, setFlexPreviewUrl] = useState(null);
+  const [flexUploading, setFlexUploading] = useState(false);
   const [huntTargetRank, setHuntTargetRank] = useState(null);
   const [huntDiscovered, setHuntDiscovered] = useState(false);
   const [colorDistributions, setColorDistributions] = useState({});
@@ -663,6 +683,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   }, [personalBestVideos, userId, onPersonalBestAdded]);
 
   // ── FLEX CAMERA ───────────────────────────────────────────────────────────
+  // Tap opens the file input; the picked photo is shown in a preview overlay
+  // (FLEX IT to confirm the upload, ✕ to discard) rather than uploading
+  // immediately, so a mis-tap doesn't spend a photo without confirmation.
   const flexCameraInputRef = useRef(null);
   const openFlexCamera = useCallback((e) => {
     e.stopPropagation();
@@ -673,28 +696,36 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     e.target.value = '';
     if (!file || !currentVideo) return;
     setDotState('single');
-
     const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        await axios.post('https://web-production-a267.up.railway.app/flex/place', {
-          user_id: userId,
-          video_id: currentVideo.video_id,
-          photo_base64: reader.result,
-          overlay_type: 'none',
-        });
-        setFlexPointsFlash(true);
-        setTimeout(() => setFlexPointsFlash(false), 1500);
-        if (onFlexPlaced) onFlexPlaced(currentVideo.video_id);
-      } catch (err) {
-        const message = err.response?.data?.detail || 'Could not place flex photo';
-        setFlexError(message);
-        setTimeout(() => setFlexError(m => m === message ? null : m), 3000);
-        console.log('Flex place error:', err);
-      }
-    };
+    reader.onload = () => setFlexPreviewUrl(reader.result);
     reader.readAsDataURL(file);
-  }, [currentVideo, userId, onFlexPlaced]);
+  }, [currentVideo]);
+
+  const cancelFlexPreview = useCallback(() => setFlexPreviewUrl(null), []);
+
+  const confirmFlex = useCallback(async () => {
+    if (!flexPreviewUrl || !currentVideo || flexUploading) return;
+    setFlexUploading(true);
+    try {
+      await axios.post('https://web-production-a267.up.railway.app/flex/place', {
+        user_id: userId,
+        video_id: currentVideo.video_id,
+        photo_base64: flexPreviewUrl,
+        overlay_type: 'none',
+      });
+      setFlexPreviewUrl(null);
+      setFlexPointsFlash(true);
+      setTimeout(() => setFlexPointsFlash(false), 1500);
+      if (onFlexPlaced) onFlexPlaced(currentVideo.video_id);
+    } catch (err) {
+      const message = err.response?.data?.detail || 'Could not place flex photo';
+      setFlexError(message);
+      setTimeout(() => setFlexError(m => m === message ? null : m), 3000);
+      console.log('Flex place error:', err);
+    } finally {
+      setFlexUploading(false);
+    }
+  }, [flexPreviewUrl, flexUploading, currentVideo, userId, onFlexPlaced]);
 
   const bgColor = darkMode ? '#000000' : '#0A0A0A';
 
@@ -1019,9 +1050,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           <button
             onClick={(e) => { e.stopPropagation();
               window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
-            style={{ backgroundColor:'transparent', border:'1px solid #333',
-                     color:'#555', padding:'6px 16px', cursor:'pointer',
-                     fontSize:'10px', letterSpacing:'2px' }}>
+            onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
+              window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
+            style={{ ...vintageButtonBase, color:'#444', border:'1px solid #2a2a2a' }}>
             WATCH ON YOUTUBE
           </button>
         </div>
@@ -1093,10 +1124,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           playDropAnimation(Math.floor(Math.random() * totalRanks) + 1); }}
         onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
           playDropAnimation(Math.floor(Math.random() * totalRanks) + 1); }}
-        style={{ position:'absolute', top:'64px', left:'16px',
-                 backgroundColor:'#0A0A0A', border:'1px solid #444',
-                 color:'#AAA', padding:'10px 10px', cursor:'pointer',
-                 fontSize:'9px', letterSpacing:'2px', zIndex:110 }}>
+        style={{ ...vintageButtonBase, position:'absolute', top:'64px', left:'16px', zIndex:110 }}>
         RANDOM
       </button>
 
@@ -1356,6 +1384,42 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               {linkCopied ? 'LINK COPIED' : 'COPY LINK'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* FLEX CAMERA PREVIEW — confirm before uploading the captured photo */}
+      {flexPreviewUrl && (
+        <div style={{ position:'fixed', inset:0, zIndex:300, backgroundColor:'#000000',
+                      display:'flex', flexDirection:'column', alignItems:'center',
+                      justifyContent:'center' }}>
+          <button onClick={cancelFlexPreview}
+            onTouchEnd={(e) => { e.preventDefault(); cancelFlexPreview(); }}
+            style={{ position:'absolute', top:'20px', right:'20px', backgroundColor:'transparent',
+                     border:'1px solid #333', color:'#777', width:'44px', height:'44px',
+                     borderRadius:'50%', fontSize:'16px', cursor:'pointer', zIndex:301,
+                     display:'flex', alignItems:'center', justifyContent:'center' }}>
+            ×
+          </button>
+          <img src={flexPreviewUrl} alt="Your flex photo"
+               style={{ maxWidth:'92%', maxHeight:'70%', objectFit:'contain',
+                        borderRadius:'4px', boxShadow:'0 0 40px rgba(0,0,0,0.6)' }} />
+          {flexError && (
+            <span style={{ color:'#E74C3C', fontSize:'10px', letterSpacing:'1px',
+                           marginTop:'16px' }}>
+              {flexError.toUpperCase()}
+            </span>
+          )}
+          <button onClick={confirmFlex}
+            onTouchEnd={(e) => { e.preventDefault(); confirmFlex(); }}
+            disabled={flexUploading}
+            style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
+                     color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
+                     padding:'10px 32px', minWidth:'44px', minHeight:'44px',
+                     cursor: flexUploading ? 'default' : 'pointer',
+                     opacity: flexUploading ? 0.6 : 1,
+                     marginTop:'32px' }}>
+            {flexUploading ? 'FLEXING…' : 'FLEX IT'}
+          </button>
         </div>
       )}
 

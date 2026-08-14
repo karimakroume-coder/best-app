@@ -131,10 +131,13 @@ function Rankings() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <a href="/personal-best"
              title="My Personal Best 100"
+             onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/personal-best'; }}
              style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
-                      fontSize: '12px', letterSpacing: '3px', textDecoration: 'none',
-                      border: '1px solid #3a2f14', padding: '4px 12px',
-                      cursor: 'pointer' }}>
+                      fontSize: '10px', letterSpacing: '3px', textDecoration: 'none',
+                      backgroundColor: 'transparent', border: '1px solid #C8A951',
+                      borderRadius: 0, padding: '4px 10px', cursor: 'pointer',
+                      minWidth: '44px', minHeight: '44px',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             MY BEST
           </a>
           <button onClick={() => setHuntActive(a => !a)}
