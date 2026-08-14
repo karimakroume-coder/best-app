@@ -190,6 +190,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
   const [personalBestPointsFlash, setPersonalBestPointsFlash] = useState(false);
   const [huntTargetRank, setHuntTargetRank] = useState(null);
   const [huntDiscovered, setHuntDiscovered] = useState(false);
+  const [colorDistributions, setColorDistributions] = useState({});
 
   // ── THE MARK ─────────────────────────────────────────────────────────────
   // idle -> spreading -> keyboard -> confirmed -> sharing -> receding -> idle
@@ -240,6 +241,21 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
       return () => clearTimeout(t);
     }
   }, [huntActive, huntTargetRank, currentRank, huntDiscovered, onHuntComplete]);
+
+  // ── COLOR DISTRIBUTION BAR (single card view) ───────────────────────────
+  // Fetched once per video and cached so navigating back to a card is instant.
+  useEffect(() => {
+    if (zoomLevel !== 1 || !currentVideo) return;
+    const vid = currentVideo.video_id;
+    if (colorDistributions[vid]) return;
+    let cancelled = false;
+    axios.get(`https://web-production-a267.up.railway.app/color/distribution/${vid}`)
+      .then(res => {
+        if (!cancelled) setColorDistributions(prev => ({ ...prev, [vid]: res.data }));
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [zoomLevel, currentVideo, colorDistributions]);
 
   // Top-50 cards with both their permanent grid position and their target
   // letter position, normalized into the same 0-100% screen space.
@@ -544,20 +560,44 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
     touchStartRef.current = { x: t.clientX, y: t.clientY };
   }, []);
 
+  // Guard against vertical scrolls / pull-to-refresh hijacking the swipe:
+  // cancel the browser's default touch handling while the gesture is active
+  // so touchend always lands here. Attached as a NATIVE non-passive listener
+  // because React attaches touchmove as passive (preventDefault is a no-op
+  // there and would only log a console warning on Android Chrome).
+  const singleCardRef = useRef(null);
+  useEffect(() => {
+    if (zoomLevel !== 1) return;
+    const el = singleCardRef.current;
+    if (!el) return;
+    const guardScroll = (e) => { if (e.cancelable) e.preventDefault(); };
+    el.addEventListener('touchmove', guardScroll, { passive: false });
+    return () => el.removeEventListener('touchmove', guardScroll);
+  }, [zoomLevel]);
+
+  const onTouchCancelNav = useCallback(() => {
+    touchStartRef.current = null;
+  }, []);
+
   const onTouchEndNav = useCallback((e) => {
     const start = touchStartRef.current;
     touchStartRef.current = null;
     if (!start || markStage !== 'idle') return;
+    // useDrag may have handled this gesture through its pointer path.
     if (Date.now() - pointerNavRef.current < 250) return;
     if (e.changedTouches.length !== 1) return;
     const t = e.changedTouches[0];
     const deltaX = t.clientX - start.x;
     const deltaY = t.clientY - start.y;
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 50) {
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    if (absX > 50 && absX > absY) {
+      // Horizontal swipe — next rank to the left, previous rank to the right.
       navigateToCoord(currentX + (deltaX < 0 ? 1 : -1), currentY);
-    } else if (Math.abs(deltaY) > Math.abs(deltaX) && Math.abs(deltaY) > 50) {
+    } else if (absY > 50 && absY > absX) {
       navigateToCoord(currentX, currentY + (deltaY < 0 ? 1 : -1));
-    } else if (Math.abs(deltaX) < 10 && Math.abs(deltaY) < 10 && dotState === 'hidden') {
+    } else if (absX < 10 && absY < 10 && dotState === 'hidden') {
+      // Tap — reveal the dot UI without pausing the video.
       setDotState('single');
     }
   }, [markStage, currentX, currentY, navigateToCoord, dotState]);
@@ -821,8 +861,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
     <div style={{ width:'100vw', height:'100vh', backgroundColor:retroBg,
                   position:'relative', overflow:'hidden', touchAction:'none',
                   userSelect:'none' }}
+         ref={singleCardRef}
          {...bind()} {...pinchBind()}
-         onTouchStart={onTouchStartNav} onTouchEnd={onTouchEndNav}
+         onTouchStart={onTouchStartNav}
+         onTouchEnd={onTouchEndNav} onTouchCancel={onTouchCancelNav}
          onDoubleClick={() => { if (markStage === 'idle') navigateToCoord(0, 0); }}
          onClick={() => { if (markStage === 'idle' && dotState === 'hidden') setDotState('single'); }}>
 
@@ -889,6 +931,26 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
                         textAlign:'center', marginTop:'6px' }}>
             {currentVideo.channel_name}
           </div>
+
+          {/* COLOR DISTRIBUTION BAR — 4px, segments proportional to community mood */}
+          {(() => {
+            const dist = colorDistributions[currentVideo.video_id];
+            const segments = dist && dist.total > 0 ? Object.entries(dist.distribution) : [];
+            return (
+              <div style={{ display:'flex', width:'240px', height:'4px', margin:'12px auto 0',
+                            borderRadius:'2px', overflow:'hidden',
+                            backgroundColor:'#1a1206', boxShadow:'inset 0 0 2px rgba(0,0,0,0.8)' }}>
+                {segments.length === 0 ? (
+                  <div style={{ flex:1, backgroundColor:'#333333' }} />
+                ) : (
+                  segments.map(([name, pct]) => (
+                    <div key={name} title={`${name} ${pct}%`}
+                         style={{ width:`${pct}%`, flexShrink:0, backgroundColor:getColorHex(name) }} />
+                  ))
+                )}
+              </div>
+            );
+          })()}
 
           {/* SCORE BAR */}
           <div style={{ display:'flex', alignItems:'center', justifyContent:'center',

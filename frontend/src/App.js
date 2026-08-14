@@ -4,8 +4,11 @@ import axios from 'axios';
 import Login from './Login';
 import Register from './Register';
 import SpatialMap from './SpatialMap';
+import PersonalBest from './PersonalBest';
 import Countdown from './Countdown';
 import fireflagPng from './assets/icons/FIREFLAG.png';
+
+const DEFAULT_USER_ID = 'a307cc62-3afd-47b0-9911-9300a934d788';
 
 const CATEGORIES = [
   { label: 'Global',        value: 'global' },
@@ -26,7 +29,7 @@ function Rankings() {
   const [darkMode, setDarkMode]               = useState(false);
   const [huntActive, setHuntActive]           = useState(false);
 
-  const userId = 'a307cc62-3afd-47b0-9911-9300a934d788';
+  const userId = DEFAULT_USER_ID;
 
   // Auto-scroll the category strip so the active pill is centered.
   const categoryPillRefs = useRef({});
@@ -126,6 +129,14 @@ function Rankings() {
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <a href="/personal-best"
+             title="My Personal Best 100"
+             style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+                      fontSize: '12px', letterSpacing: '3px', textDecoration: 'none',
+                      border: '1px solid #3a2f14', padding: '4px 12px',
+                      cursor: 'pointer' }}>
+            MY BEST
+          </a>
           <button onClick={() => setHuntActive(a => !a)}
             title={huntActive ? 'Stop hunt' : 'Start hunt'}
             style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
@@ -225,6 +236,7 @@ function App() {
           element={<Login onLogin={() => { window.location.href = '/'; }} />} />
         <Route path="/register"
           element={<Register onLogin={() => { window.location.href = '/'; }} />} />
+        <Route path="/personal-best" element={<PersonalBest userId={DEFAULT_USER_ID} />} />
         <Route path="/launch" element={<Countdown />} />
       </Routes>
     </BrowserRouter>
