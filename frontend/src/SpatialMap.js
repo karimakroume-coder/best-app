@@ -147,11 +147,11 @@ const vintageButtonBase = {
   fontFamily: 'Bebas Neue, sans-serif',
   fontSize: '11px',
   letterSpacing: '4px',
-  color: '#555',
+  color: '#C8A951',
   backgroundColor: 'transparent',
-  border: '1px solid #333',
+  border: '1px solid #C8A951',
   borderRadius: 0,
-  padding: '6px 14px',
+  padding: '8px 16px',
   minWidth: '44px',
   minHeight: '44px',
   display: 'flex',
@@ -163,6 +163,14 @@ const vintageButtonBase = {
 const zoomButtonStyle = {
   ...vintageButtonBase,
   position: 'absolute', top: '64px', right: '16px', zIndex: 110,
+};
+
+// ── DOT ACTION PANEL — shared circle style for color/watch/best/camera ────
+const dotCircleStyle = {
+  width: '36px', height: '36px', borderRadius: '50%',
+  border: '1px solid #C8A951', backgroundColor: 'transparent',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer',
 };
 
 // ── THE MARK: paint-drip shapes ─────────────────────────────────────────────
@@ -620,9 +628,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       navigateToCoord(currentX + (deltaX < 0 ? 1 : -1), currentY);
     } else if (absY > 50 && absY > absX) {
       navigateToCoord(currentX, currentY + (deltaY < 0 ? 1 : -1));
-    } else if (absX < 10 && absY < 10 && dotState === 'hidden') {
-      // Tap — reveal the dot UI without pausing the video.
-      setDotState('single');
+    } else if (absX < 10 && absY < 10) {
+      // Tap — reveal the dot UI, or collapse the open panel back to the dot.
+      if (dotState === 'hidden') setDotState('single');
+      else if (dotState === 'three') setDotState('single');
     }
   }, [markStage, currentX, currentY, navigateToCoord, dotState]);
 
@@ -935,7 +944,11 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
          onTouchStart={onTouchStartNav}
          onTouchEnd={onTouchEndNav} onTouchCancel={onTouchCancelNav}
          onDoubleClick={() => { if (markStage === 'idle') navigateToCoord(0, 0); }}
-         onClick={() => { if (markStage === 'idle' && dotState === 'hidden') setDotState('single'); }}>
+         onClick={() => {
+           if (markStage !== 'idle') return;
+           if (dotState === 'hidden') setDotState('single');
+           else if (dotState === 'three') setDotState('single');
+         }}>
 
       {/* VIGNETTE */}
       <div style={{ position:'fixed', inset:0, zIndex:5, pointerEvents:'none',
@@ -1052,7 +1065,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
             onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
               window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
-            style={{ ...vintageButtonBase, color:'#444', border:'1px solid #2a2a2a' }}>
+            style={{ ...vintageButtonBase, border:'1px solid #444',
+                     letterSpacing:'3px', padding:'8px 20px' }}>
             WATCH ON YOUTUBE
           </button>
         </div>
@@ -1146,87 +1160,63 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                  style={{ width:'44px', height:'44px', display:'flex',
                           alignItems:'center', justifyContent:'center',
                           cursor:'pointer' }}>
-              <GoldDot style={{ animation:'fadeIn 0.3s ease', pointerEvents:'none' }} />
+              <GoldDot style={{ animation:'fadeIn 0.3s ease, goldDotPulse 2s ease-in-out infinite',
+                                borderRadius:'50%', pointerEvents:'none' }} />
             </div>
           )}
 
           {dotState === 'three' && (
-            <div style={{ position:'relative', width:'80px', height:'80px' }}>
-              {/* CENTER DOT */}
-              <div style={{ position:'absolute', bottom:'0', right:'0',
-                            width:'12px', height:'12px', borderRadius:'50%',
-                            backgroundColor:'#FFFFFF',
-                            boxShadow:'0 0 8px rgba(255,255,255,0.5)' }} />
-              {/* LEFT DOT — COLOR */}
+            <div style={{
+              backgroundColor:'rgba(13,8,0,0.9)', border:'1px solid #C8A951',
+              borderRadius:'8px', padding:'12px 8px',
+              display:'flex', flexDirection:'column', alignItems:'center', gap:'16px',
+              animation:'slideInRight 0.2s ease-out' }}>
+
+              {/* COLOR */}
               <div
                 onClick={(e) => { e.stopPropagation(); setShowColorWheel(true); setDotState('hidden'); }}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
                   setShowColorWheel(true); setDotState('hidden'); }}
-                style={{ position:'absolute', bottom:'32px', right:'40px',
-                         width:'28px', height:'28px', borderRadius:'50%',
-                         backgroundColor:'#C9A84C', cursor:'pointer',
-                         display:'flex', alignItems:'center', justifyContent:'center',
-                         fontSize:'14px', boxShadow:'0 0 12px rgba(201,168,76,0.6)',
-                         animation:'popIn 0.3s ease' }}>
-                🎨
+                style={dotCircleStyle}>
+                <span style={{ fontSize:'16px', lineHeight:1 }}>🎨</span>
               </div>
-              {/* RIGHT DOT — WATCH */}
+
+              {/* WATCH */}
               <div
                 onClick={(e) => { e.stopPropagation();
                   window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
                   window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
-                style={{ position:'absolute', bottom:'40px', right:'-16px',
-                         width:'28px', height:'28px', borderRadius:'50%',
-                         backgroundColor:'#E74C3C', cursor:'pointer',
-                         display:'flex', alignItems:'center', justifyContent:'center',
-                         fontSize:'14px', boxShadow:'0 0 12px rgba(231,76,60,0.6)',
-                         animation:'popIn 0.3s ease' }}>
-                ▶
+                style={dotCircleStyle}>
+                <span style={{ color:'#C8A951', fontSize:'16px', lineHeight:1 }}>▶</span>
               </div>
-              {/* TOP DOT — PERSONAL BEST 100 */}
+
+              {/* PERSONAL BEST 100 */}
               <div
                 onClick={(e) => addToPersonalBest(e, currentVideo)}
                 onTouchEnd={(e) => { e.preventDefault(); addToPersonalBest(e, currentVideo); }}
-                style={{ position:'absolute', bottom:'64px', right:'8px',
-                         width:'28px', height:'28px', borderRadius:'50%',
-                         backgroundColor: personalBestAnimating === currentVideo.video_id
-                           || personalBestVideos[currentVideo.video_id] ? '#C9A84C' : '#FFFFFF',
-                         cursor: personalBestVideos[currentVideo.video_id] ? 'default' : 'pointer',
-                         display:'flex', alignItems:'center', justifyContent:'center',
-                         fontSize:'16px', fontWeight:'bold', color:'#0A0A0A',
-                         boxShadow: personalBestAnimating === currentVideo.video_id
-                           ? '0 0 16px rgba(201,168,76,0.9)' : '0 0 8px rgba(255,255,255,0.5)',
-                         transition:'background-color 0.3s ease, box-shadow 0.3s ease',
-                         animation:'popIn 0.3s ease' }}>
-                {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
+                style={{ ...dotCircleStyle,
+                         cursor: personalBestVideos[currentVideo.video_id] ? 'default' : 'pointer' }}>
+                <span style={{ color:'#C8A951', fontSize:'16px', fontWeight:'bold', lineHeight:1 }}>
+                  {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
+                </span>
               </div>
-              {/* FLEX CAMERA — capture a photo, above the color/watch dots */}
+
+              {/* FLEX CAMERA */}
               <div
                 onClick={openFlexCamera}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); openFlexCamera(e); }}
-                style={{ position:'absolute', bottom:'96px', right:'8px',
-                         width:'28px', height:'28px', borderRadius:'50%',
-                         backgroundColor:'#1A1A1A', border:'1px solid #C8A951', cursor:'pointer',
-                         display:'flex', alignItems:'center', justifyContent:'center',
-                         boxShadow:'0 0 12px rgba(200,169,81,0.5)',
-                         animation:'popIn 0.3s ease' }}>
+                style={dotCircleStyle}>
                 <FlexCamera style={{ width:'16px', height:'16px' }} />
               </div>
               <input ref={flexCameraInputRef} type="file" accept="image/*" capture="environment"
                      onChange={handleFlexCameraFile} style={{ display:'none' }} />
-              {/* DISMISS */}
-              <div onClick={(e) => { e.stopPropagation(); setDotState('single'); }}
-                   onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setDotState('single'); }}
-                   style={{ position:'absolute', top:'-16px', right:'-16px',
-                            color:'#333', fontSize:'10px', cursor:'pointer',
-                            padding:'12px' }}>✕</div>
             </div>
           )}
 
           {/* PERSONAL BEST — feedback (error / +50 flash) */}
           {dotState === 'three' && (personalBestError || personalBestPointsFlash) && (
-            <div style={{ position:'absolute', bottom:'204px', right:'0',
+            <div style={{ position:'absolute', bottom:'256px', right:'0',
                           display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
               {personalBestPointsFlash && (
                 <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',
@@ -1248,7 +1238,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               menu being open since the menu closes as soon as a photo is
               picked, before the upload (and this feedback) resolves. */}
           {(flexError || flexPointsFlash) && (
-            <div style={{ position:'absolute', bottom:'236px', right:'0',
+            <div style={{ position:'absolute', bottom:'288px', right:'0',
                           display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
               {flexPointsFlash && (
                 <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',
@@ -1435,6 +1425,14 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         @keyframes popIn {
           from { opacity:0; transform:scale(0); }
           to   { opacity:1; transform:scale(1); }
+        }
+        @keyframes goldDotPulse {
+          0%, 100% { box-shadow: 0 0 8px rgba(200,169,81,0.4); }
+          50%      { box-shadow: 0 0 16px rgba(200,169,81,0.8); }
+        }
+        @keyframes slideInRight {
+          from { opacity:0; transform:translateX(24px); }
+          to   { opacity:1; transform:translateX(0); }
         }
       `}</style>
     </div>
