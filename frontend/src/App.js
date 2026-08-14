@@ -220,6 +220,9 @@ function Rankings() {
             onColorAssigned={() => {
               setDiscoveryScore(prev => prev !== null ? prev + 5 : 5);
             }}
+            onFlexPlaced={() => {
+              setDiscoveryScore(prev => prev !== null ? prev + 10 : 10);
+            }}
           />
         </div>
       )}

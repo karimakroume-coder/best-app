@@ -171,7 +171,7 @@ function generateDrips(width, height) {
   return { width, height, paths };
 }
 
-function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, darkMode, huntActive, onHuntComplete, onHuntStop }) {
+function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, darkMode, huntActive, onHuntComplete, onHuntStop }) {
   console.log('SpatialMap rankings prop:', rankings?.length);
 
   const [currentX, setCurrentX]               = useState(0);
@@ -190,6 +190,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
   const [personalBestAnimating, setPersonalBestAnimating] = useState(null);
   const [personalBestError, setPersonalBestError] = useState(null);
   const [personalBestPointsFlash, setPersonalBestPointsFlash] = useState(false);
+  const [flexError, setFlexError] = useState(null);
+  const [flexPointsFlash, setFlexPointsFlash] = useState(false);
   const [huntTargetRank, setHuntTargetRank] = useState(null);
   const [huntDiscovered, setHuntDiscovered] = useState(false);
   const [colorDistributions, setColorDistributions] = useState({});
@@ -669,10 +671,30 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
   const handleFlexCameraFile = useCallback((e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
-    if (!file) return;
-    console.log('Flex camera photo captured:', file.name, file.type, file.size);
+    if (!file || !currentVideo) return;
     setDotState('single');
-  }, []);
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        await axios.post('https://web-production-a267.up.railway.app/flex/place', {
+          user_id: userId,
+          video_id: currentVideo.video_id,
+          photo_base64: reader.result,
+          overlay_type: 'none',
+        });
+        setFlexPointsFlash(true);
+        setTimeout(() => setFlexPointsFlash(false), 1500);
+        if (onFlexPlaced) onFlexPlaced(currentVideo.video_id);
+      } catch (err) {
+        const message = err.response?.data?.detail || 'Could not place flex photo';
+        setFlexError(message);
+        setTimeout(() => setFlexError(m => m === message ? null : m), 3000);
+        console.log('Flex place error:', err);
+      }
+    };
+    reader.readAsDataURL(file);
+  }, [currentVideo, userId, onFlexPlaced]);
 
   const bgColor = darkMode ? '#000000' : '#0A0A0A';
 
@@ -1189,6 +1211,28 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
                 <span style={{ color:'#E74C3C', fontSize:'8px', letterSpacing:'1px',
                                maxWidth:'140px', textAlign:'right' }}>
                   {personalBestError.toUpperCase()}
+                </span>
+              )}
+            </div>
+          )}
+
+          {/* FLEX CAMERA — feedback (error / +10 flash). Not gated on the
+              menu being open since the menu closes as soon as a photo is
+              picked, before the upload (and this feedback) resolves. */}
+          {(flexError || flexPointsFlash) && (
+            <div style={{ position:'absolute', bottom:'236px', right:'0',
+                          display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
+              {flexPointsFlash && (
+                <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',
+                               letterSpacing:'1px', animation:'fadeIn 0.2s ease',
+                               textShadow:'0 0 8px rgba(201,168,76,0.6)' }}>
+                  +10 DISCOVERY
+                </span>
+              )}
+              {flexError && (
+                <span style={{ color:'#E74C3C', fontSize:'8px', letterSpacing:'1px',
+                               maxWidth:'140px', textAlign:'right' }}>
+                  {flexError.toUpperCase()}
                 </span>
               )}
             </div>
