@@ -1,4 +1,5 @@
 import React from 'react';
+import { ReactComponent as CompassArrow } from './assets/icons/compass-arrow.svg';
 
 // Presentational only — SpatialMap owns the coordinate math (target rank,
 // current position, angle, distance) since it already has the permanent
@@ -39,12 +40,11 @@ function HuntGame({ targetVideo, angleDeg, withinRange, discovered, onClose }) {
                       boxShadow: withinRange ? '0 0 24px rgba(201,168,76,0.6)' : 'none',
                       backgroundColor:'rgba(10,10,10,0.6)',
                       transition:'border 0.3s ease, box-shadow 0.3s ease' }}>
-          <span style={{ display:'inline-block', fontSize:'26px', lineHeight:1,
-                         color: withinRange ? '#C9A84C' : '#888',
+          <CompassArrow style={{ width:'26px', height:'26px',
                          transform:`rotate(${angleDeg}deg)`,
-                         transition:'transform 0.4s ease, color 0.3s ease' }}>
-            ▲
-          </span>
+                         opacity: withinRange ? 1 : 0.6,
+                         filter: withinRange ? 'none' : 'grayscale(1) brightness(0.8)',
+                         transition:'transform 0.4s ease, filter 0.3s ease, opacity 0.3s ease' }} />
         </div>
       )}
 

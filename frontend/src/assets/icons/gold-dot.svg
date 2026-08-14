@@ -1,0 +1,8 @@
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="gold-dot-glow" x="-100%" y="-100%" width="300%" height="300%">
+      <feDropShadow dx="0" dy="0" stdDeviation="6" flood-color="#C8A951" flood-opacity="0.6"/>
+    </filter>
+  </defs>
+  <circle cx="18" cy="18" r="18" fill="#C8A951" filter="url(#gold-dot-glow)"/>
+</svg>

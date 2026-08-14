@@ -8,6 +8,8 @@ import ColorWheel from './ColorWheel';
 import StripKeyboard from './StripKeyboard';
 import FireflagIcon from './FireflagIcon';
 import HuntGame from './HuntGame';
+import { ReactComponent as GoldDot } from './assets/icons/gold-dot.svg';
+import { ReactComponent as FlexCamera } from './assets/icons/flex-camera.svg';
 
 const RANK_STYLES = {
   1:  { color: '#C9A84C', fontSize: '72px', fontWeight: 'bold' },
@@ -658,6 +660,20 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
     }
   }, [personalBestVideos, userId, onPersonalBestAdded]);
 
+  // ── FLEX CAMERA ───────────────────────────────────────────────────────────
+  const flexCameraInputRef = useRef(null);
+  const openFlexCamera = useCallback((e) => {
+    e.stopPropagation();
+    flexCameraInputRef.current?.click();
+  }, []);
+  const handleFlexCameraFile = useCallback((e) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    console.log('Flex camera photo captured:', file.name, file.type, file.size);
+    setDotState('single');
+  }, []);
+
   const bgColor = darkMode ? '#000000' : '#0A0A0A';
 
   // ── SHARED FORMATION RENDERER (zoomLevel 5 blend + zoomLevel 99 lock) ───
@@ -1080,10 +1096,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
                  style={{ width:'44px', height:'44px', display:'flex',
                           alignItems:'center', justifyContent:'center',
                           cursor:'pointer' }}>
-              <div style={{ width:'36px', height:'36px', borderRadius:'50%',
-                            backgroundColor:'#C8A951',
-                            boxShadow:'0 0 12px rgba(201,169,81,0.6)',
-                            animation:'fadeIn 0.3s ease', pointerEvents:'none' }} />
+              <GoldDot style={{ animation:'fadeIn 0.3s ease', pointerEvents:'none' }} />
             </div>
           )}
 
@@ -1138,6 +1151,20 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, da
                          animation:'popIn 0.3s ease' }}>
                 {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
               </div>
+              {/* FLEX CAMERA — capture a photo, above the color/watch dots */}
+              <div
+                onClick={openFlexCamera}
+                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); openFlexCamera(e); }}
+                style={{ position:'absolute', bottom:'96px', right:'8px',
+                         width:'28px', height:'28px', borderRadius:'50%',
+                         backgroundColor:'#1A1A1A', border:'1px solid #C8A951', cursor:'pointer',
+                         display:'flex', alignItems:'center', justifyContent:'center',
+                         boxShadow:'0 0 12px rgba(200,169,81,0.5)',
+                         animation:'popIn 0.3s ease' }}>
+                <FlexCamera style={{ width:'16px', height:'16px' }} />
+              </div>
+              <input ref={flexCameraInputRef} type="file" accept="image/*" capture="environment"
+                     onChange={handleFlexCameraFile} style={{ display:'none' }} />
               {/* DISMISS */}
               <div onClick={(e) => { e.stopPropagation(); setDotState('single'); }}
                    onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setDotState('single'); }}
