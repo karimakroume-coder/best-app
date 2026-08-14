@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
-import os, sys
+import base64, binascii, os, re, sys, uuid
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from ranking.fetcher import fetch_trending
 from ranking.scorer import compute_score
@@ -29,6 +29,12 @@ CATEGORY_IDS = {"music":"10","gaming":"20","sports":"17","entertainment":"24","p
 class AuthRequest(BaseModel):
     email: str
     password: str
+
+class FlexPlaceRequest(BaseModel):
+    user_id: str
+    video_id: str
+    photo_base64: str
+    overlay_type: str = "none"
 
 @app.get("/health")
 def health():
@@ -236,6 +242,52 @@ def remove_personal_best(payload: dict):
     client = get_client()
     client.table("personal_best").delete().eq("user_id", user_id).eq("video_id", video_id).execute()
     return {"message": "Removed from Personal Best 100"}
+
+@app.post("/flex/place")
+def place_flex(req: FlexPlaceRequest):
+    client = get_client()
+
+    photo_bytes = req.photo_base64
+    if "," in photo_bytes and photo_bytes.strip().startswith("data:"):
+        photo_bytes = photo_bytes.split(",", 1)[1]
+    photo_bytes = re.sub(r"\s+", "", photo_bytes)
+    try:
+        photo_data = base64.b64decode(photo_bytes, validate=True)
+    except (binascii.Error, ValueError):
+        raise HTTPException(status_code=400, detail="photo_base64 is not valid base64")
+    if not photo_data:
+        raise HTTPException(status_code=400, detail="photo_base64 is empty")
+
+    file_name = f"flex/{req.user_id}/{uuid.uuid4()}.jpg"
+    client.storage.from_("flex-photos").upload(file_name, photo_data)
+    photo_url = client.storage.from_("flex-photos").get_public_url(file_name)
+
+    insert_result = client.table("flex_comments").insert({
+        "user_id": req.user_id,
+        "video_id": req.video_id,
+        "photo_url": photo_url,
+        "overlay_type": req.overlay_type,
+    }).execute()
+    if not insert_result.data:
+        raise HTTPException(status_code=500, detail="flex_comments insert returned no rows")
+    flex_id = insert_result.data[0]["id"]
+
+    user_data = client.table("users").select("discovery_score").eq("user_id", req.user_id).execute()
+    current_score = user_data.data[0]["discovery_score"] if user_data.data else 0
+    client.table("users").update({"discovery_score": current_score + 10}).eq("user_id", req.user_id).execute()
+
+    return {
+        "flex_id": flex_id,
+        "photo_url": photo_url,
+        "position": {"x": 50, "y": 50},
+        "points_earned": 10,
+    }
+
+@app.get("/flex/list/{video_id}")
+def list_flexes(video_id: str):
+    client = get_client()
+    result = client.table("flex_comments").select("*").eq("video_id", video_id).order("placed_at", desc=True).limit(50).execute()
+    return {"video_id": video_id, "count": len(result.data), "flexes": result.data}
 
 if __name__ == "__main__":
     import uvicorn
