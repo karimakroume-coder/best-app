@@ -333,12 +333,23 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   // ── CINEMATIC FOCUS MODE ─────────────────────────────────────────────────
   // After a few seconds dwelling on the same video, let the chrome recede so
   // the video can breathe: rank pushed aside, title/logo dimmed, score bar
-  // and swoosh hidden. Resets every time the user lands on a new rank.
-  useEffect(() => {
+  // and swoosh hidden. resetFocusTimer is imperative (ref-based) rather than
+  // purely effect-driven so any tap on the card can restart the countdown,
+  // not just landing on a new rank.
+  const focusTimerRef = useRef(null);
+
+  const resetFocusTimer = useCallback(() => {
     setFocusMode(false);
-    const t = setTimeout(() => setFocusMode(true), 6000);
-    return () => clearTimeout(t);
-  }, [currentRank]);
+    clearTimeout(focusTimerRef.current);
+    focusTimerRef.current = setTimeout(() => {
+      setFocusMode(true);
+    }, 6000);
+  }, []);
+
+  useEffect(() => {
+    resetFocusTimer();
+    return () => clearTimeout(focusTimerRef.current);
+  }, [currentRank, resetFocusTimer]);
 
   useEffect(() => {
     console.log('focus mode:', focusMode);
@@ -643,6 +654,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     const start = touchStartRef.current;
     touchStartRef.current = null;
     if (!start || markStage !== 'idle') return;
+    resetFocusTimer();
     // useDrag may have handled this gesture through its pointer path.
     if (Date.now() - pointerNavRef.current < 250) return;
     if (e.changedTouches.length !== 1) return;
@@ -661,7 +673,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       if (dotState === 'hidden') setDotState('single');
       else if (dotState === 'three') setDotState('single');
     }
-  }, [markStage, currentX, currentY, navigateToCoord, dotState]);
+  }, [markStage, currentX, currentY, navigateToCoord, dotState, resetFocusTimer]);
 
   const cycleZoom = useCallback(() => {
     setZoomLevel(prev => prev === 1 ? 3 : prev === 3 ? 5 : prev === 5 ? 99 : 1);
@@ -984,6 +996,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
          onTouchEnd={onTouchEndNav} onTouchCancel={onTouchCancelNav}
          onDoubleClick={() => { if (markStage === 'idle') navigateToCoord(0, 0); }}
          onClick={() => {
+           resetFocusTimer();
            if (markStage !== 'idle') return;
            if (dotState === 'hidden') setDotState('single');
            else if (dotState === 'three') setDotState('single');
@@ -1021,13 +1034,14 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
         {/* BEST LOGO */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center',
-                      fontFamily:'Pacifico, cursive', color:'#F5E6C8',
+                      fontFamily:'Pacifico, cursive', fontSize:'48px', color:'#F5E6C8',
                       textShadow:'2px 2px 0 #C8A951, 4px 4px 0 #B8860B, 6px 6px 0 #8B6914, 8px 8px 0 rgba(0,0,0,0.5)',
                       marginBottom:'8px',
                       transition:'all 0.8s ease-out',
-                      fontSize: focusMode ? '24px' : '48px',
-                      transform: focusMode ? 'translateY(-20px)' : 'translateY(0)',
-                      opacity: focusMode ? 0.3 : 1 }}>
+                      transform: focusMode ?
+                        'translateY(-60px) scale(0.4)' :
+                        'translateY(0) scale(1)',
+                      opacity: focusMode ? 0.2 : 1 }}>
           BEST
         </div>
 
@@ -1054,19 +1068,21 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           </svg>
 
           <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F5E6C8',
-                        letterSpacing:'3px', textAlign:'center',
+                        textAlign:'center',
                         marginTop:'4px', maxWidth:'320px', padding:'0 16px',
                         transition:'all 0.8s ease-out',
-                        fontSize: focusMode ? '11px' : '22px',
-                        transform: focusMode ? 'translateX(-10px)' : 'translateX(0)',
-                        opacity: focusMode ? 0.6 : 1 }}>
+                        fontSize: focusMode ? '13px' : '22px',
+                        letterSpacing: focusMode ? '2px' : '3px',
+                        transform: focusMode ? 'translateY(80px)' : 'translateY(0)',
+                        opacity: focusMode ? 0.7 : 1 }}>
             {currentVideo.title}
           </div>
-          <div style={{ fontFamily:'Arial, sans-serif', fontSize:'12px', color:'#C8A951',
+          <div style={{ fontFamily:'Arial, sans-serif', color:'#C8A951',
                         letterSpacing:'4px', textTransform:'uppercase',
                         textAlign:'center', marginTop:'6px',
-                        transition:'opacity 0.5s ease',
-                        opacity: focusMode ? 0 : 1 }}>
+                        transition:'all 0.5s ease',
+                        fontSize: focusMode ? '9px' : '12px',
+                        opacity: focusMode ? 0.4 : 1 }}>
             {currentVideo.channel_name}
           </div>
 
