@@ -1,89 +1,113 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 const COLORS = [
-  { name:'red',    hex:'#E74C3C' },
-  { name:'blue',   hex:'#2980B9' },
-  { name:'green',  hex:'#27AE60' },
-  { name:'yellow', hex:'#F1C40F' },
-  { name:'black',  hex:'#1A1A1A' },
-  { name:'white',  hex:'#FFFFFF' },
-  { name:'gold',   hex:'#C8A951' }
+  { name: 'red',    hex: '#E74C3C' },
+  { name: 'blue',   hex: '#2980B9' },
+  { name: 'green',  hex: '#27AE60' },
+  { name: 'yellow', hex: '#F1C40F' },
+  { name: 'black',  hex: '#1A1A1A' },
+  { name: 'white',  hex: '#FFFFFF' },
+  { name: 'gold',   hex: '#C8A951' },
 ];
 
-export default function ColorOnboarding({ onComplete }) {
-  const [order, setOrder] = useState(COLORS);
-  const [dragging, setDragging] = useState(null);
+const SLOT_H = 84;
 
-  const handleTouchStart = (e, idx) => {
-    setDragging({ idx, startY: e.touches[0].clientY });
+function ColorOnboarding({ onComplete }) {
+  const [order, setOrder] = useState(COLORS.map(c => c.name));
+  const [dragging, setDragging] = useState(null);
+  const [dragOffset, setDragOffset] = useState(0);
+  const startY = useRef(0);
+
+  const handleTouchStart = (e, name) => {
+    e.stopPropagation();
+    startY.current = e.touches[0].clientY;
+    setDragging(name);
+    setDragOffset(0);
   };
 
-  const handleTouchEnd = (e, idx) => {
-    if (!dragging) return;
-    const deltaY = e.changedTouches[0].clientY - dragging.startY;
-    const steps = Math.round(deltaY / 70);
-    if (steps !== 0) {
-      const newOrder = [...order];
-      const item = newOrder.splice(dragging.idx, 1)[0];
-      const newIdx = Math.max(0, Math.min(6, dragging.idx + steps));
-      newOrder.splice(newIdx, 0, item);
-      setOrder(newOrder);
+  const handleTouchMove = (e, name) => {
+    if (dragging !== name) return;
+    e.preventDefault();
+    const dy = e.touches[0].clientY - startY.current;
+    setDragOffset(dy);
+
+    const fromIndex = order.indexOf(name);
+    const rawTo = fromIndex + Math.round(dy / SLOT_H);
+    const toIndex = Math.max(0, Math.min(order.length - 1, rawTo));
+    if (toIndex !== fromIndex) {
+      const next = [...order];
+      next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, name);
+      setOrder(next);
+      startY.current = e.touches[0].clientY - (toIndex - fromIndex) * SLOT_H;
+      setDragOffset(e.touches[0].clientY - startY.current);
     }
+  };
+
+  const handleTouchEnd = (e, name) => {
+    if (dragging !== name) return;
     setDragging(null);
+    setDragOffset(0);
   };
 
   const handleConfirm = () => {
-    localStorage.setItem('colorRanking',
-      JSON.stringify(order.map(c => c.name)));
-    onComplete();
+    localStorage.setItem('colorRanking', JSON.stringify(order));
+    if (onComplete) onComplete();
   };
 
   return (
-    <div style={{ position:'fixed', inset:0, backgroundColor:'#0D0800',
-                  zIndex:500, display:'flex', flexDirection:'column',
-                  alignItems:'center', overflowY:'auto', paddingBottom:40 }}>
-      <div style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:28,
-                    color:'#C8A951', letterSpacing:4, marginTop:60,
-                    textAlign:'center' }}>
+    <div style={{ position:'fixed', inset:0, zIndex:400, backgroundColor:'#0D0800',
+                  display:'flex', flexDirection:'column', alignItems:'center',
+                  justifyContent:'center', padding:'24px', boxSizing:'border-box' }}>
+      <div style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'28px', color:'#C8A951',
+                    letterSpacing:'4px', textAlign:'center' }}>
         HOW DO YOU SEE COLOR?
       </div>
-      <div style={{ fontFamily:'Pacifico,cursive', fontSize:14,
-                    color:'#F5E6C8', marginTop:12, textAlign:'center',
-                    padding:'0 24px' }}>
+      <div style={{ fontFamily:'Pacifico, cursive', fontSize:'14px', color:'#F5E6C8',
+                    textAlign:'center', margin:'10px 0 24px' }}>
         Drag to rank — most to least important
       </div>
-      <div style={{ marginTop:32, width:'100%', maxWidth:300 }}>
-        {order.map((color, idx) => (
-          <div key={color.name}
-               onTouchStart={(e) => handleTouchStart(e, idx)}
-               onTouchEnd={(e) => handleTouchEnd(e, idx)}
-               style={{ display:'flex', alignItems:'center', gap:16,
-                        padding:'10px 24px', cursor:'grab',
-                        opacity: dragging?.idx === idx ? 0.5 : 1,
-                        transition:'opacity 0.2s' }}>
-            <div style={{ width:52, height:52, borderRadius:'50%',
-                          backgroundColor: color.hex, flexShrink:0,
-                          border: color.name==='black' ? '1px solid #333' :
-                                  color.name==='white' ? '1px solid #555' : 'none',
-                          boxShadow: color.name==='gold' ?
-                            '0 0 8px rgba(200,169,81,0.5)' : 'none' }} />
-            <span style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13,
-                           color:'#C8A951', letterSpacing:3 }}>
-              {color.name.toUpperCase()}
-            </span>
-            <span style={{ marginLeft:'auto', color:'#333', fontSize:12 }}>☰</span>
-          </div>
-        ))}
+
+      <div style={{ width:'100%', maxWidth:'320px', height:`${order.length * SLOT_H}px`,
+                    position:'relative', touchAction:'none' }}>
+        {order.map((name, i) => {
+          const color = COLORS.find(c => c.name === name);
+          const isDragging = dragging === name;
+          return (
+            <div key={name}
+              onTouchStart={(e) => handleTouchStart(e, name)}
+              onTouchMove={(e) => handleTouchMove(e, name)}
+              onTouchEnd={(e) => handleTouchEnd(e, name)}
+              onTouchCancel={(e) => handleTouchEnd(e, name)}
+              style={{ position:'absolute', left:0, right:0, top:i * SLOT_H,
+                       display:'flex', flexDirection:'column', alignItems:'center',
+                       justifyContent:'center', gap:'6px', height:SLOT_H,
+                       transform: isDragging ? `translateY(${dragOffset}px)` : 'none',
+                       transition: isDragging ? 'none' : 'transform 0.15s ease',
+                       zIndex: isDragging ? 10 : 1 }}>
+              <div style={{ width:'52px', height:'52px', borderRadius:'50%',
+                            backgroundColor: color.hex,
+                            border:'2px solid #C8A951',
+                            boxShadow: isDragging ? '0 0 24px rgba(200,169,81,0.9)' : '0 0 8px rgba(0,0,0,0.5)' }} />
+              <div style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'11px',
+                            color:'#C8A951', letterSpacing:'2px' }}>
+                {name.toUpperCase()}
+              </div>
+            </div>
+          );
+        })}
       </div>
+
       <button onClick={handleConfirm}
-              onTouchEnd={(e) => { e.preventDefault(); handleConfirm(); }}
-              style={{ marginTop:32, fontFamily:'Bebas Neue,sans-serif',
-                       fontSize:16, letterSpacing:4, color:'#0D0800',
-                       backgroundColor:'#C8A951', border:'none',
-                       borderRadius:0, padding:'14px 48px',
-                       minHeight:44, cursor:'pointer' }}>
-        CONFIRM MY RANKING
+        onTouchEnd={(e) => { e.preventDefault(); handleConfirm(); }}
+        style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'16px', letterSpacing:'4px',
+                 color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
+                 padding:'14px 48px', marginTop:'28px', cursor:'pointer',
+                 minWidth:'44px', minHeight:'44px' }}>
+        CONFIRM
       </button>
     </div>
   );
 }
+
+export default ColorOnboarding;

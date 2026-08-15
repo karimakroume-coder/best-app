@@ -819,10 +819,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     const video = flexVideoRef.current;
     const canvas = flexCanvasRef.current;
     if (!video || !canvas || video.videoWidth === 0) return;
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0);
-    setFlexSnapshotUrl(canvas.toDataURL('image/jpeg', 0.9));
+    canvas.width = 120;
+    canvas.height = 120;
+    canvas.getContext('2d').drawImage(video, 0, 0, 120, 120);
+    setFlexSnapshotUrl(canvas.toDataURL('image/jpeg', 0.8));
     setFlexSnapped(true);
   }, []);
 
@@ -1547,7 +1547,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       {/* FLEX CAMERA PANEL — slides in from the right edge, live selfie feed */}
       {flexOpen && (
         <div style={{ position:'fixed', right:0, top:'50%', transform:'translateY(-50%)',
-                      width:'160px', minHeight:'220px', backgroundColor:'#0D0800',
+                      width:'160px', minHeight:'240px', backgroundColor:'#0D0800',
                       border:'1px solid #C8A951', borderRight:'none',
                       borderRadius:'8px 0 0 8px', zIndex:300,
                       display:'flex', flexDirection:'column', alignItems:'center',
@@ -1612,18 +1612,18 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           {flexSnapped && flexSnapshotUrl ? (
             <button onClick={postFlex}
               onTouchEnd={(e) => { e.preventDefault(); postFlex(); }}
-              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
+              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'3px',
                        color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
-                       padding:'8px 24px', minWidth:'44px', minHeight:'44px',
+                       padding:'10px 20px', minWidth:'44px', minHeight:'44px',
                        cursor:'pointer', opacity: flexStickerDrop ? 0.6 : 1 }}>
               {flexStickerDrop ? 'FLEXING…' : 'FLEX IT'}
             </button>
           ) : (
             <button onClick={snapFlexPhoto}
               onTouchEnd={(e) => { e.preventDefault(); snapFlexPhoto(); }}
-              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
+              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'3px',
                        color:'#C8A951', backgroundColor:'transparent', border:'1px solid #C8A951',
-                       borderRadius:0, padding:'8px 24px', minWidth:'44px', minHeight:'44px',
+                       borderRadius:0, padding:'6px 16px', minWidth:'44px', minHeight:'44px',
                        cursor:'pointer' }}>
               SNAP
             </button>
