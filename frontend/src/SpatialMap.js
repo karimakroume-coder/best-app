@@ -228,8 +228,11 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [personalBestPointsFlash, setPersonalBestPointsFlash] = useState(false);
   const [flexError, setFlexError] = useState(null);
   const [flexPointsFlash, setFlexPointsFlash] = useState(false);
-  const [flexPreviewUrl, setFlexPreviewUrl] = useState(null);
-  const [flexUploading, setFlexUploading] = useState(false);
+  const [flexOpen, setFlexOpen] = useState(false);
+  const [flexSnapped, setFlexSnapped] = useState(false);
+  const [flexSnapshotUrl, setFlexSnapshotUrl] = useState(null);
+  const [flexOverlay, setFlexOverlay] = useState('none');
+  const [flexStickerDrop, setFlexStickerDrop] = useState(false);
   const [flexList, setFlexList] = useState([]);
   const [flexWallOpen, setFlexWallOpen] = useState(false);
   const [regSheetOpen, setRegSheetOpen] = useState(false);
@@ -252,6 +255,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [shareFallback, setShareFallback] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const markCaptureRef = useRef(null);
+  const flexVideoRef = useRef(null);
+  const flexCanvasRef = useRef(null);
+  const flexStreamRef = useRef(null);
 
   const totalRanks = rankings.length;
 
@@ -754,51 +760,93 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     return { x: 12 + h1 * 76, y: 22 + h2 * 66 };
   };
 
-  // ── FLEX CAMERA ───────────────────────────────────────────────────────────
-  // Tap opens the file input; the picked photo is shown in a preview overlay
-  // (FLEX IT to confirm the upload, ✕ to discard) rather than uploading
-  // immediately, so a mis-tap doesn't spend a photo without confirmation.
-  const flexCameraInputRef = useRef(null);
-  const openFlexCamera = useCallback((e) => {
-    e.stopPropagation();
+  // ── FLEX CAMERA PANEL ─────────────────────────────────────────────────────
+  // A fixed panel slides in from the right edge with a live selfie feed.
+  // SNAP freezes a frame, the overlay strip picks a sticker, and FLEX IT
+  // uploads the snapshot. ✕ closes the panel and stops the camera.
+  const FLEX_OVERLAYS = ['none', '😎', '🔥', '💀', '👑', '⚡', '🌊', '🎭', '✨'];
+
+  const stopFlexStream = useCallback(() => {
+    if (flexStreamRef.current) {
+      flexStreamRef.current.getTracks().forEach(track => track.stop());
+      flexStreamRef.current = null;
+    }
+    if (flexVideoRef.current) {
+      flexVideoRef.current.srcObject = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!flexOpen || flexSnapped) return;
+    let cancelled = false;
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } })
+      .then(stream => {
+        if (cancelled) {
+          stream.getTracks().forEach(track => track.stop());
+          return;
+        }
+        flexStreamRef.current = stream;
+        if (flexVideoRef.current) {
+          flexVideoRef.current.srcObject = stream;
+          flexVideoRef.current.play().catch(() => {});
+        }
+      })
+      .catch(() => setFlexError('Camera unavailable'));
+    return () => { cancelled = true; };
+  }, [flexOpen, flexSnapped]);
+
+  const openFlexPanel = useCallback((e) => {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
     if (!isLoggedIn) { setRegSheetOpen(true); return; }
-    flexCameraInputRef.current?.click();
+    setFlexError(null);
+    setFlexSnapped(false);
+    setFlexSnapshotUrl(null);
+    setFlexOverlay('none');
+    setFlexStickerDrop(false);
+    setFlexOpen(true);
   }, [isLoggedIn]);
-  const handleFlexCameraFile = useCallback((e) => {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !currentVideo) return;
+
+  const closeFlexPanel = useCallback(() => {
+    stopFlexStream();
+    setFlexOpen(false);
+    setFlexSnapped(false);
+    setFlexSnapshotUrl(null);
+    setFlexStickerDrop(false);
     setDotState('single');
-    const reader = new FileReader();
-    reader.onload = () => setFlexPreviewUrl(reader.result);
-    reader.readAsDataURL(file);
-  }, [currentVideo]);
+  }, [stopFlexStream]);
 
-  const cancelFlexPreview = useCallback(() => setFlexPreviewUrl(null), []);
+  const snapFlexPhoto = useCallback(() => {
+    const video = flexVideoRef.current;
+    const canvas = flexCanvasRef.current;
+    if (!video || !canvas || video.videoWidth === 0) return;
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    setFlexSnapshotUrl(canvas.toDataURL('image/jpeg', 0.9));
+    setFlexSnapped(true);
+  }, []);
 
-  const confirmFlex = useCallback(async () => {
-    if (!flexPreviewUrl || !currentVideo || flexUploading) return;
-    setFlexUploading(true);
+  const postFlex = useCallback(async () => {
+    if (!flexSnapshotUrl || !currentVideo || flexStickerDrop) return;
+    setFlexStickerDrop(true);
     try {
       await axios.post('https://web-production-a267.up.railway.app/flex/place', {
         user_id: userId,
         video_id: currentVideo.video_id,
-        photo_base64: flexPreviewUrl,
-        overlay_type: 'none',
+        photo_base64: flexSnapshotUrl,
+        overlay_type: flexOverlay,
       });
-      setFlexPreviewUrl(null);
-      setFlexPointsFlash(true);
-      setTimeout(() => setFlexPointsFlash(false), 1500);
+      setTimeout(() => setFlexPointsFlash(true), 500);
+      setTimeout(() => { setFlexPointsFlash(false); closeFlexPanel(); }, 1800);
       if (onFlexPlaced) onFlexPlaced(currentVideo.video_id);
     } catch (err) {
       const message = err.response?.data?.detail || 'Could not place flex photo';
       setFlexError(message);
+      setFlexStickerDrop(false);
       setTimeout(() => setFlexError(m => m === message ? null : m), 3000);
       console.log('Flex place error:', err);
-    } finally {
-      setFlexUploading(false);
     }
-  }, [flexPreviewUrl, flexUploading, currentVideo, userId, onFlexPlaced]);
+  }, [flexSnapshotUrl, flexStickerDrop, currentVideo, userId, flexOverlay, onFlexPlaced, closeFlexPanel]);
 
   const openColorWheel = useCallback((e) => {
     if (onBeforeColor && onBeforeColor()) return;
@@ -1280,10 +1328,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         <div style={{ position:'absolute', bottom:'120px', right:'24px', zIndex:10 }}>
 
           {dotState === 'single' && (
-            <MandalaButton
-              onClick={() => setDotState('three')}
-              onTouchEnd={(e) => { e.preventDefault(); setDotState('three'); }}
-            />
+            <MandalaButton onClick={() => setDotState('three')} />
           )}
 
           {dotState === 'three' && (
@@ -1326,14 +1371,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
               {/* FLEX CAMERA */}
               <div
-                onClick={openFlexCamera}
-                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); openFlexCamera(e); }}
+                onClick={openFlexPanel}
+                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); openFlexPanel(e); }}
                 style={{ ...dotCircleStyle, position:'relative' }}>
                 <FlexCamera style={{ width:'16px', height:'16px' }} />
                 {!isLoggedIn && <LockBadge />}
               </div>
-              <input ref={flexCameraInputRef} type="file" accept="image/*" capture="environment"
-                     onChange={handleFlexCameraFile} style={{ display:'none' }} />
             </div>
           )}
 
@@ -1500,38 +1543,145 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </div>
       )}
 
-      {/* FLEX CAMERA PREVIEW — confirm before uploading the captured photo */}
-      {flexPreviewUrl && (
-        <div style={{ position:'fixed', inset:0, zIndex:300, backgroundColor:'#000000',
+      {/* FLEX CAMERA PANEL — slides in from the right edge, live selfie feed */}
+      {flexOpen && (
+        <div style={{ position:'fixed', right:0, top:'50%', transform:'translateY(-50%)',
+                      width:'160px', minHeight:'220px', backgroundColor:'#0D0800',
+                      border:'1px solid #C8A951', borderRight:'none',
+                      borderRadius:'8px 0 0 8px', zIndex:300,
                       display:'flex', flexDirection:'column', alignItems:'center',
-                      justifyContent:'center' }}>
-          <button onClick={cancelFlexPreview}
-            onTouchEnd={(e) => { e.preventDefault(); cancelFlexPreview(); }}
-            style={{ position:'absolute', top:'20px', right:'20px', backgroundColor:'transparent',
-                     border:'1px solid #333', color:'#777', width:'44px', height:'44px',
-                     borderRadius:'50%', fontSize:'16px', cursor:'pointer', zIndex:301,
-                     display:'flex', alignItems:'center', justifyContent:'center' }}>
-            ×
+                      padding:'14px 10px', boxSizing:'border-box',
+                      animation:'flexSlideIn 0.3s ease-out',
+                      boxShadow:'-8px 0 30px rgba(0,0,0,0.7)' }}>
+
+          <button onClick={closeFlexPanel}
+            onTouchEnd={(e) => { e.preventDefault(); closeFlexPanel(); }}
+            style={{ position:'absolute', top:'4px', right:'8px', backgroundColor:'transparent',
+                     border:'none', color:'#777', fontSize:'14px', width:'44px', height:'44px',
+                     cursor:'pointer', zIndex:301, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            ✕
           </button>
-          <img src={flexPreviewUrl} alt="Your flex photo"
-               style={{ maxWidth:'92%', maxHeight:'70%', objectFit:'contain',
-                        borderRadius:'4px', boxShadow:'0 0 40px rgba(0,0,0,0.6)' }} />
+
           {flexError && (
-            <span style={{ color:'#E74C3C', fontSize:'10px', letterSpacing:'1px',
-                           marginTop:'16px' }}>
+            <span style={{ color:'#E74C3C', fontSize:'8px', letterSpacing:'1px',
+                           textAlign:'center', marginBottom:'4px' }}>
               {flexError.toUpperCase()}
             </span>
           )}
-          <button onClick={confirmFlex}
-            onTouchEnd={(e) => { e.preventDefault(); confirmFlex(); }}
-            disabled={flexUploading}
-            style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
-                     color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
-                     padding:'10px 32px', minWidth:'44px', minHeight:'44px',
-                     cursor: flexUploading ? 'default' : 'pointer',
-                     opacity: flexUploading ? 0.6 : 1,
-                     marginTop:'32px' }}>
-            {flexUploading ? 'FLEXING…' : 'FLEX IT'}
+
+          <canvas ref={flexCanvasRef} style={{ display:'none' }} />
+
+          {flexSnapped && flexSnapshotUrl ? (
+            <img src={flexSnapshotUrl} alt="Your flex photo"
+                 style={{ width:'120px', height:'120px', borderRadius:'50%',
+                          objectFit:'cover', border:'1px solid #C8A951',
+                          margin:'24px 0 8px', transform:'scaleX(-1)' }} />
+          ) : (
+            <video ref={flexVideoRef} playsInline muted autoPlay
+                   style={{ width:'120px', height:'120px', borderRadius:'50%',
+                            objectFit:'cover', border:'1px solid #C8A951',
+                            backgroundColor:'#000', margin:'24px 0 8px',
+                            transform:'scaleX(-1)' }} />
+          )}
+
+          <span style={{ color:'#8B7355', fontSize:'8px', letterSpacing:'2px',
+                         textAlign:'center', marginBottom:'8px' }}>
+            FLEX YOUR MOMENT
+          </span>
+
+          {/* OVERLAY STRIP — single scrollable row, 32px circles */}
+          <div style={{ display:'flex', gap:'4px', overflowX:'auto', width:'100%',
+                        justifyContent:'center', marginBottom:'8px' }}>
+            {FLEX_OVERLAYS.map(ov => (
+              <button key={ov}
+                onClick={(e) => { e.stopPropagation(); setFlexOverlay(ov); }}
+                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setFlexOverlay(ov); }}
+                style={{ flexShrink:0, width:'32px', height:'32px', borderRadius:'50%',
+                         backgroundColor: flexOverlay === ov ? '#C8A951' : 'transparent',
+                         border: flexOverlay === ov ? 'none' : '1px solid #3a2f14',
+                         color: ov === 'none' ? '#C8A951' : '#F5E6C8',
+                         fontSize:'9px', fontFamily:'Bebas Neue, sans-serif',
+                         letterSpacing:'1px', cursor:'pointer', padding:0,
+                         display:'flex', alignItems:'center', justifyContent:'center' }}>
+                {ov === 'none' ? 'NONE' : ov}
+              </button>
+            ))}
+          </div>
+
+          {flexSnapped && flexSnapshotUrl ? (
+            <button onClick={postFlex}
+              onTouchEnd={(e) => { e.preventDefault(); postFlex(); }}
+              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
+                       color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
+                       padding:'8px 24px', minWidth:'44px', minHeight:'44px',
+                       cursor:'pointer', opacity: flexStickerDrop ? 0.6 : 1 }}>
+              {flexStickerDrop ? 'FLEXING…' : 'FLEX IT'}
+            </button>
+          ) : (
+            <button onClick={snapFlexPhoto}
+              onTouchEnd={(e) => { e.preventDefault(); snapFlexPhoto(); }}
+              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
+                       color:'#C8A951', backgroundColor:'transparent', border:'1px solid #C8A951',
+                       borderRadius:0, padding:'8px 24px', minWidth:'44px', minHeight:'44px',
+                       cursor:'pointer' }}>
+              SNAP
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* STICKER DROP — brief overlay after a successful flex */}
+      {flexStickerDrop && flexOverlay !== 'none' && (
+        <div style={{ position:'fixed', inset:0, zIndex:301, pointerEvents:'none',
+                      display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <span style={{ fontSize:'72px', animation:'flexStickerDrop 0.8s ease-out',
+                         textShadow:'0 0 30px rgba(200,169,81,0.8)' }}>
+            {flexOverlay}
+          </span>
+        </div>
+      )}
+
+      {/* PROGRESSIVE REGISTRATION SHEET — slides up on gated actions */}
+      {regSheetOpen && (
+        <div style={{ position:'fixed', bottom:0, left:0, right:0, height:'220px',
+                      backgroundColor:'#0D0800', borderTop:'2px solid #C8A951',
+                      zIndex:302, display:'flex', flexDirection:'column',
+                      alignItems:'center', justifyContent:'center', gap:'10px',
+                      animation:'regSheetUp 0.3s ease-out',
+                      boxShadow:'0 -10px 40px rgba(0,0,0,0.7)' }}>
+          <span style={{ fontFamily:'Pacifico, cursive', color:'#C8A951',
+                         fontSize:'28px', lineHeight:1 }}>BEST</span>
+          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F5E6C8',
+                         fontSize:'14px', letterSpacing:'3px' }}>
+            LEAVE YOUR MARK ON THIS VIDEO
+          </span>
+          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#8B7355',
+                         fontSize:'12px', letterSpacing:'2px' }}>
+            10 SECONDS TO JOIN
+          </span>
+          <div style={{ display:'flex', gap:'12px', marginTop:'4px' }}>
+            <button onClick={() => { window.location.href = '/register'; }}
+              onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/register'; }}
+              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'13px', letterSpacing:'3px',
+                       color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
+                       padding:'8px 28px', minWidth:'44px', minHeight:'44px', cursor:'pointer' }}>
+              SIGN UP
+            </button>
+            <button onClick={() => { window.location.href = '/login'; }}
+              onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/login'; }}
+              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'13px', letterSpacing:'3px',
+                       color:'#C8A951', backgroundColor:'transparent', border:'1px solid #C8A951',
+                       borderRadius:0, padding:'8px 28px', minWidth:'44px', minHeight:'44px',
+                       cursor:'pointer' }}>
+              LOG IN
+            </button>
+          </div>
+          <button onClick={() => setRegSheetOpen(false)}
+            onTouchEnd={(e) => { e.preventDefault(); setRegSheetOpen(false); }}
+            style={{ backgroundColor:'transparent', border:'none', color:'#555',
+                     fontSize:'9px', letterSpacing:'2px', cursor:'pointer',
+                     minHeight:'44px', padding:'4px 12px' }}>
+            MAYBE LATER
           </button>
         </div>
       )}
@@ -1642,6 +1792,19 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           to   { opacity:1; transform:translateX(0); }
         }
         @keyframes slideUpSheet {
+          from { transform:translateY(100%); }
+          to   { transform:translateY(0); }
+        }
+        @keyframes flexSlideIn {
+          from { transform:translateX(60px); opacity:0; }
+          to   { transform:translateX(0); opacity:1; }
+        }
+        @keyframes flexStickerDrop {
+          0%   { transform:translateY(-40px) scale(0.4); opacity:0; }
+          50%  { transform:translateY(10px) scale(1.2); opacity:1; }
+          100% { transform:translateY(0) scale(1); opacity:1; }
+        }
+        @keyframes regSheetUp {
           from { transform:translateY(100%); }
           to   { transform:translateY(0); }
         }

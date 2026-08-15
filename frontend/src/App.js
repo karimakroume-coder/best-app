@@ -39,8 +39,9 @@ function Rankings() {
     return false;
   };
 
-  const userId = localStorage.getItem('best_token')
-    ? DEFAULT_USER_ID : null;
+  // Only pass a userId when there is an actual auth token, so the
+  // progressive registration gate can detect a logged-out visitor.
+  const userId = localStorage.getItem('best_token') ? DEFAULT_USER_ID : null;
 
   // Auto-scroll the category strip so the active pill is centered.
   const categoryPillRefs = useRef({});
