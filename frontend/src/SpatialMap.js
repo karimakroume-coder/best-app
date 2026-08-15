@@ -230,6 +230,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [flexPointsFlash, setFlexPointsFlash] = useState(false);
   const [flexPreviewUrl, setFlexPreviewUrl] = useState(null);
   const [flexUploading, setFlexUploading] = useState(false);
+  const [flexList, setFlexList] = useState([]);
+  const [flexWallOpen, setFlexWallOpen] = useState(false);
   const [regSheetOpen, setRegSheetOpen] = useState(false);
   const [huntTargetRank, setHuntTargetRank] = useState(null);
   const [huntDiscovered, setHuntDiscovered] = useState(false);
@@ -733,6 +735,25 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     }
   }, [personalBestVideos, userId, onPersonalBestAdded, isLoggedIn]);
 
+  // ── FLEX WALL ─────────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (!currentVideo) return;
+    let cancelled = false;
+    axios.get(`https://web-production-a267.up.railway.app/flex/list/${currentVideo.video_id}`)
+      .then(res => { if (!cancelled) setFlexList(res.data.flexes || []); })
+      .catch(() => { if (!cancelled) setFlexList([]); });
+    return () => { cancelled = true; };
+  }, [currentVideo]);
+
+  // The backend doesn't store a wall position per flex, so scatter them
+  // deterministically by index (stable across re-renders, avoids the
+  // header caption band at the top).
+  const flexWallPosition = (i) => {
+    const h1 = Math.abs(Math.sin(i * 12.9898) * 43758.5453) % 1;
+    const h2 = Math.abs(Math.sin(i * 78.233) * 12543.789) % 1;
+    return { x: 12 + h1 * 76, y: 22 + h2 * 66 };
+  };
+
   // ── FLEX CAMERA ───────────────────────────────────────────────────────────
   // Tap opens the file input; the picked photo is shown in a preview overlay
   // (FLEX IT to confirm the upload, ✕ to discard) rather than uploading
@@ -1078,6 +1099,17 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                         opacity: focusMode ? 0.7 : 1 }}>
             {currentVideo.title}
           </div>
+
+          {flexList.length > 0 && (
+            <div onClick={() => setFlexWallOpen(true)}
+                 onTouchEnd={(e) => { e.preventDefault(); setFlexWallOpen(true); }}
+                 style={{ color:'#C8A951', fontFamily:'Bebas Neue,sans-serif',
+                          fontSize:11, letterSpacing:3, cursor:'pointer',
+                          textAlign:'center', marginTop:8 }}>
+              {flexList.length} FLEXES — TAP TO SEE
+            </div>
+          )}
+
           <div style={{ fontFamily:'Arial, sans-serif', color:'#C8A951',
                         letterSpacing:'4px', textTransform:'uppercase',
                         textAlign:'center', marginTop:'6px',
@@ -1501,6 +1533,43 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                      marginTop:'32px' }}>
             {flexUploading ? 'FLEXING…' : 'FLEX IT'}
           </button>
+        </div>
+      )}
+
+      {/* FLEX WALL — mosaic of everyone who flexed on this video, most recent 12 */}
+      {flexWallOpen && (
+        <div onClick={() => setFlexWallOpen(false)}
+             style={{ position:'fixed', inset:0,
+                      backgroundColor:'rgba(0,0,0,0.92)',
+                      zIndex:250, overflow:'hidden' }}>
+          <div style={{ position:'absolute', top:16, left:0, right:0,
+                        textAlign:'center', fontFamily:'Bebas Neue,sans-serif',
+                        color:'#C8A951', fontSize:16, letterSpacing:4 }}>
+            {flexList.length} FLEXES · TAP TO CLOSE
+          </div>
+          {flexList.slice(0, 12).map((flex, i) => {
+            const pos = flexWallPosition(i);
+            return (
+              <div key={flex.id} style={{
+                position:'absolute',
+                left: pos.x + '%',
+                top: pos.y + '%',
+                transform:'translate(-50%,-50%)',
+                width:52, height:52
+              }}>
+                <img src={flex.photo_url} alt="flex"
+                     style={{ width:52, height:52, borderRadius:'50%',
+                              objectFit:'cover',
+                              border:'2px solid #C8A951' }}/>
+                {flex.overlay_type && flex.overlay_type !== 'none' && (
+                  <span style={{ position:'absolute', bottom:-4, right:-4,
+                                 fontSize:16 }}>
+                    {flex.overlay_type}
+                  </span>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
