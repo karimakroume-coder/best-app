@@ -197,6 +197,15 @@ function generateDrips(width, height) {
   return { width, height, paths };
 }
 
+function LockBadge() {
+  return (
+    <span style={{ position:'absolute', top:'-4px', right:'-4px',
+                   fontSize:'11px', color:'#C9A84C',
+                   textShadow:'0 0 4px rgba(0,0,0,0.9)',
+                   pointerEvents:'none', zIndex:2 }}>🔒</span>
+  );
+}
+
 function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, darkMode, huntActive, onHuntComplete, onHuntStop }) {
   console.log('SpatialMap rankings prop:', rankings?.length);
 
@@ -1156,10 +1165,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
           {dotState === 'single' && (
             <MandalaButton
-              size={120}
-              onClick={(e) => { e.stopPropagation(); setDotState('three'); }}
-              onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setDotState('three'); }}
-              style={{ animation:'fadeIn 0.3s ease' }}
+              onClick={() => setDotState('three')}
+              onTouchEnd={(e) => { e.preventDefault(); setDotState('three'); }}
             />
           )}
 

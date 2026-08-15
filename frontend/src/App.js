@@ -29,7 +29,8 @@ function Rankings() {
   const [darkMode, setDarkMode]               = useState(false);
   const [huntActive, setHuntActive]           = useState(false);
 
-  const userId = DEFAULT_USER_ID;
+  const userId = localStorage.getItem('best_token')
+    ? DEFAULT_USER_ID : null;
 
   // Auto-scroll the category strip so the active pill is centered.
   const categoryPillRefs = useRef({});
