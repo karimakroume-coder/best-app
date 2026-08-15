@@ -213,6 +213,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [currentY, setCurrentY]                = useState(0);
   const [zoomLevel, setZoomLevel]              = useState(1);
   const [dotState, setDotState]                = useState('single');
+  const [focusMode, setFocusMode]               = useState(false);
   const [showColorWheel, setShowColorWheel]    = useState(false);
   const [assignedColors, setAssignedColors]    = useState({});
   const [isDropping, setIsDropping]            = useState(true);
@@ -328,6 +329,20 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       return () => clearTimeout(t);
     }
   }, [dotState, currentRank]);
+
+  // ── CINEMATIC FOCUS MODE ─────────────────────────────────────────────────
+  // After a few seconds dwelling on the same video, let the chrome recede so
+  // the video can breathe: rank pushed aside, title/logo dimmed, score bar
+  // and swoosh hidden. Resets every time the user lands on a new rank.
+  useEffect(() => {
+    setFocusMode(false);
+    const t = setTimeout(() => setFocusMode(true), 6000);
+    return () => clearTimeout(t);
+  }, [currentRank]);
+
+  useEffect(() => {
+    console.log('focus mode:', focusMode);
+  }, [focusMode]);
 
   // ── SLIDE ANIMATION ─────────────────────────────────────────────────────
   const [springs, api] = useSpring(() => ({ x: 0, y: 0, opacity: 1 }));
@@ -958,6 +973,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const isFlagged = !!fireflaggedVideos[currentVideo.video_id];
   const dimmedByDarkMode = darkMode && !isFlagged;
   const retroBg = darkMode ? '#000000' : '#0D0800';
+  const rankStyle = getRetroRankStyle(currentVideo.rank);
   return (
     <div style={{ width:'100vw', height:'100vh', backgroundColor:retroBg,
                   position:'relative', overflow:'hidden', touchAction:'none',
@@ -1005,35 +1021,52 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
         {/* BEST LOGO */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center',
-                      fontFamily:'Pacifico, cursive', fontSize:'48px', color:'#F5E6C8',
+                      fontFamily:'Pacifico, cursive', color:'#F5E6C8',
                       textShadow:'2px 2px 0 #C8A951, 4px 4px 0 #B8860B, 6px 6px 0 #8B6914, 8px 8px 0 rgba(0,0,0,0.5)',
-                      marginBottom:'8px' }}>
+                      marginBottom:'8px',
+                      transition:'all 0.8s ease-out',
+                      fontSize: focusMode ? '24px' : '48px',
+                      transform: focusMode ? 'translateY(-20px)' : 'translateY(0)',
+                      opacity: focusMode ? 0.3 : 1 }}>
           BEST
         </div>
 
         {/* RANK NUMBER */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
-          <div style={{ ...getRetroRankStyle(currentVideo.rank),
-                        animation: currentVideo.rank === 1 ? 'pulse 3s infinite' : 'none' }}>
+          <div style={{ ...rankStyle,
+                        animation: currentVideo.rank === 1 ? 'pulse 3s infinite' : 'none',
+                        transition:'all 0.8s ease-out',
+                        fontSize: focusMode ? '36px' : rankStyle.fontSize,
+                        transform: focusMode ? 'translateX(40vw)' : 'translateX(0)',
+                        opacity: focusMode ? 0.4 : 1 }}>
             #{currentVideo.rank}
           </div>
 
           {/* CURVED SWOOSH */}
-          <svg width="200" height="40" viewBox="0 0 200 40" style={{ display:'block', margin:'0 auto' }}>
+          <svg width="200" height="40" viewBox="0 0 200 40"
+               style={{ display:'block', margin:'0 auto',
+                        transition:'opacity 0.5s ease',
+                        opacity: focusMode ? 0 : 1 }}>
             <path d="M 20 10 Q 100 40 180 10"
                   stroke="#C8A951" strokeWidth="3" fill="none" strokeLinecap="round" />
             <path d="M 175 5 Q 185 10 180 20"
                   stroke="#C8A951" strokeWidth="3" fill="none" strokeLinecap="round" />
           </svg>
 
-          <div style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'22px', color:'#F5E6C8',
+          <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F5E6C8',
                         letterSpacing:'3px', textAlign:'center',
-                        marginTop:'4px', maxWidth:'320px', padding:'0 16px' }}>
+                        marginTop:'4px', maxWidth:'320px', padding:'0 16px',
+                        transition:'all 0.8s ease-out',
+                        fontSize: focusMode ? '11px' : '22px',
+                        transform: focusMode ? 'translateX(-10px)' : 'translateX(0)',
+                        opacity: focusMode ? 0.6 : 1 }}>
             {currentVideo.title}
           </div>
           <div style={{ fontFamily:'Arial, sans-serif', fontSize:'12px', color:'#C8A951',
                         letterSpacing:'4px', textTransform:'uppercase',
-                        textAlign:'center', marginTop:'6px' }}>
+                        textAlign:'center', marginTop:'6px',
+                        transition:'opacity 0.5s ease',
+                        opacity: focusMode ? 0 : 1 }}>
             {currentVideo.channel_name}
           </div>
 
@@ -1057,42 +1090,56 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             );
           })()}
 
-          {/* SCORE BAR */}
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
-                        gap:'10px', marginTop:'14px' }}>
-            <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'20px',
-                          color:'#F5E6C8', letterSpacing:'1px' }}>
-              {currentVideo.total_score}
-            </span>
-            <div style={{ width:'56px', height:'2px',
-                          background:'linear-gradient(to right, transparent, #C8A951, #C8A951, transparent)' }} />
-            <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px',
-                          color:'#8B6914', letterSpacing:'1px' }}>
-              100
-            </span>
-          </div>
-          <div style={{ textAlign:'center', color:'#C8A951', fontSize:'14px', marginTop:'6px' }}>
-            ★
-          </div>
-          <div style={{ textAlign:'center', color:'#C8A951', fontSize:'8px',
-                        letterSpacing:'3px', marginTop:'4px' }}>
-            GLOBAL COMMUNITY VOTES
+          {/* SCORE BAR CONTAINER */}
+          <div style={{ transition:'opacity 0.5s ease', opacity: focusMode ? 0 : 1 }}>
+            <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
+                          gap:'10px', marginTop:'14px' }}>
+              <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'20px',
+                            color:'#F5E6C8', letterSpacing:'1px' }}>
+                {currentVideo.total_score}
+              </span>
+              <div style={{ width:'56px', height:'2px',
+                            background:'linear-gradient(to right, transparent, #C8A951, #C8A951, transparent)' }} />
+              <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px',
+                            color:'#8B6914', letterSpacing:'1px' }}>
+                100
+              </span>
+            </div>
+            <div style={{ textAlign:'center', color:'#C8A951', fontSize:'14px', marginTop:'6px' }}>
+              ★
+            </div>
+            <div style={{ textAlign:'center', color:'#C8A951', fontSize:'8px',
+                          letterSpacing:'3px', marginTop:'4px' }}>
+              GLOBAL COMMUNITY VOTES
+            </div>
           </div>
         </div>
 
-        {/* YOUTUBE LINK */}
-        <div style={{ position:'absolute', bottom:'80px', left:'50%',
-                      transform:'translateX(-50%)', zIndex:2 }}>
-          <button
-            onClick={(e) => { e.stopPropagation();
-              window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
-            onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
-              window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
-            style={{ ...vintageButtonBase, border:'1px solid #444',
-                     letterSpacing:'3px', padding:'8px 20px' }}>
-            WATCH ON YOUTUBE
-          </button>
-        </div>
+        {/* YOUTUBE LINK — circular play button */}
+        <button
+          onClick={(e) => { e.stopPropagation();
+            window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); }}
+          onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
+            window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); }}
+          style={{
+            position: 'absolute',
+            bottom: '80px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '52px',
+            height: '52px',
+            borderRadius: '50%',
+            backgroundColor: '#FF0000',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 20,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
+          }}>
+          <span style={{ color: 'white', fontSize: '20px', marginLeft: '3px' }}>▶</span>
+        </button>
       </animated.div>
 
       {/* NAVIGATION HINT */}
