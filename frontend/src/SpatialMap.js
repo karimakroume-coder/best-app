@@ -206,7 +206,7 @@ function LockBadge() {
   );
 }
 
-function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, darkMode, huntActive, onHuntComplete, onHuntStop }) {
+function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, onBeforeColor, darkMode, huntActive, onHuntComplete, onHuntStop }) {
   console.log('SpatialMap rankings prop:', rankings?.length);
 
   const [currentX, setCurrentX]               = useState(0);
@@ -780,11 +780,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   }, [flexPreviewUrl, flexUploading, currentVideo, userId, onFlexPlaced]);
 
   const openColorWheel = useCallback((e) => {
+    if (onBeforeColor && onBeforeColor()) return;
     e.stopPropagation();
     if (!isLoggedIn) { setRegSheetOpen(true); return; }
     setShowColorWheel(true);
     setDotState('hidden');
-  }, [isLoggedIn]);
+  }, [isLoggedIn, onBeforeColor]);
 
   const bgColor = darkMode ? '#000000' : '#0A0A0A';
 

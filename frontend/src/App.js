@@ -4,6 +4,7 @@ import axios from 'axios';
 import Login from './Login';
 import Register from './Register';
 import SpatialMap from './SpatialMap';
+import ColorOnboarding from './ColorOnboarding';
 import PersonalBest from './PersonalBest';
 import Countdown from './Countdown';
 import fireflagPng from './assets/icons/FIREFLAG.png';
@@ -28,6 +29,15 @@ function Rankings() {
   const [discoveryScore, setDiscoveryScore]   = useState(null);
   const [darkMode, setDarkMode]               = useState(false);
   const [huntActive, setHuntActive]           = useState(false);
+  const [showOnboarding, setShowOnboarding]   = useState(false);
+
+  const checkColorOnboarding = () => {
+    if (!localStorage.getItem('colorRanking')) {
+      setShowOnboarding(true);
+      return true;
+    }
+    return false;
+  };
 
   const userId = localStorage.getItem('best_token')
     ? DEFAULT_USER_ID : null;
@@ -227,9 +237,11 @@ function Rankings() {
             onFlexPlaced={() => {
               setDiscoveryScore(prev => prev !== null ? prev + 10 : 10);
             }}
+            onBeforeColor={checkColorOnboarding}
           />
         </div>
       )}
+      {showOnboarding && <ColorOnboarding onComplete={() => setShowOnboarding(false)} />}
     </div>
   );
 }
