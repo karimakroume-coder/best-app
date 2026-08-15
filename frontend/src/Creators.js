@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 
 const LAUNCH_DATE = new Date('2027-03-01T00:00:00Z');
-const APPLICATION_FORM_URL = 'https://forms.google.com/best-founders';
+const APPLICATION_FORM_URL = 'https://docs.google.com/forms/d/e/1FAIpQLSd8qGQvtEWIiojIGT01MEYwUiNpZ89_n7Kj5zbL0BX85YDleA/viewform?usp=header';
 
 function getTimeLeft() {
   const diff = LAUNCH_DATE.getTime() - Date.now();
@@ -65,9 +65,9 @@ function Creators() {
   }, []);
 
   return (
-    <div style={{ backgroundColor: '#0D0800', minHeight: '100vh', width: '100%',
-                  fontFamily: 'Arial, sans-serif', boxSizing: 'border-box',
-                  overflowX: 'hidden' }}>
+    <div style={{ backgroundColor: '#0D0800', minHeight: '100vh', height: '100vh',
+                  width: '100%', fontFamily: 'Arial, sans-serif', boxSizing: 'border-box',
+                  overflowX: 'hidden', overflowY: 'auto', WebkitOverflowScrolling: 'touch' }}>
 
       {/* SECTION 1 — HEADER */}
       <div style={{ textAlign: 'center', marginTop: '40px' }}>
