@@ -4,10 +4,11 @@ import fireflagPng from './assets/icons/FIREFLAG.png';
 // Three nested layers so the wave (rotate/skew), flicker (scaleX/scaleY) and
 // one-off placement pop (scale) can all animate `transform` at once without
 // stomping on each other.
-function FireflagIcon({ size = 20, animatePop = false, glow = false, onClick, alt = 'Fireflag' }) {
+function FireflagIcon({ size = 20, animatePop = false, glow = false, onClick, onTouchEnd, alt = 'Fireflag' }) {
   return (
     <span
       onClick={onClick}
+      onTouchEnd={onTouchEnd}
       style={{
         display: 'inline-block',
         cursor: onClick ? 'pointer' : 'default',

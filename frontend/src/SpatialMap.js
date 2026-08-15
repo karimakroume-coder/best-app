@@ -229,9 +229,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [flexPointsFlash, setFlexPointsFlash] = useState(false);
   const [flexPreviewUrl, setFlexPreviewUrl] = useState(null);
   const [flexUploading, setFlexUploading] = useState(false);
+  const [regSheetOpen, setRegSheetOpen] = useState(false);
   const [huntTargetRank, setHuntTargetRank] = useState(null);
   const [huntDiscovered, setHuntDiscovered] = useState(false);
   const [colorDistributions, setColorDistributions] = useState({});
+
+  // ── PROGRESSIVE REGISTRATION GATE ────────────────────────────────────────
+  const isLoggedIn = !!(userId || localStorage.getItem('best_token'));
 
   // ── THE MARK ─────────────────────────────────────────────────────────────
   // idle -> spreading -> keyboard -> confirmed -> sharing -> receding -> idle
@@ -656,6 +660,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   // ── FIREFLAGS ─────────────────────────────────────────────────────────────
   const placeFireflag = useCallback(async (e, video) => {
     e.stopPropagation();
+    if (!isLoggedIn) { setRegSheetOpen(true); return; }
     if (!video || fireflaggedVideos[video.video_id]) return;
     try {
       await axios.post('https://web-production-a267.up.railway.app/fireflag/place', {
@@ -673,11 +678,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       setTimeout(() => setFireflagError(m => m === message ? null : m), 3000);
       console.log('Fireflag place error:', err);
     }
-  }, [fireflaggedVideos, userId]);
+  }, [fireflaggedVideos, userId, isLoggedIn]);
 
   // ── PERSONAL BEST 100 ────────────────────────────────────────────────────
   const addToPersonalBest = useCallback(async (e, video) => {
     e.stopPropagation();
+    if (!isLoggedIn) { setRegSheetOpen(true); return; }
     if (!video || personalBestVideos[video.video_id]) return;
     try {
       await axios.post('https://web-production-a267.up.railway.app/personal-best/add', {
@@ -698,7 +704,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       setTimeout(() => setPersonalBestError(m => m === message ? null : m), 3000);
       console.log('Personal Best add error:', err);
     }
-  }, [personalBestVideos, userId, onPersonalBestAdded]);
+  }, [personalBestVideos, userId, onPersonalBestAdded, isLoggedIn]);
 
   // ── FLEX CAMERA ───────────────────────────────────────────────────────────
   // Tap opens the file input; the picked photo is shown in a preview overlay
@@ -707,8 +713,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const flexCameraInputRef = useRef(null);
   const openFlexCamera = useCallback((e) => {
     e.stopPropagation();
+    if (!isLoggedIn) { setRegSheetOpen(true); return; }
     flexCameraInputRef.current?.click();
-  }, []);
+  }, [isLoggedIn]);
   const handleFlexCameraFile = useCallback((e) => {
     const file = e.target.files?.[0];
     e.target.value = '';
@@ -744,6 +751,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       setFlexUploading(false);
     }
   }, [flexPreviewUrl, flexUploading, currentVideo, userId, onFlexPlaced]);
+
+  const openColorWheel = useCallback((e) => {
+    e.stopPropagation();
+    if (!isLoggedIn) { setRegSheetOpen(true); return; }
+    setShowColorWheel(true);
+    setDotState('hidden');
+  }, [isLoggedIn]);
 
   const bgColor = darkMode ? '#000000' : '#0A0A0A';
 
@@ -1118,7 +1132,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               {fireflagError.toUpperCase()}
             </span>
           )}
-          <FireflagIcon size={28} onClick={(e) => placeFireflag(e, currentVideo)} alt="Place fireflag" />
+          <div style={{ position:'relative' }}>
+            <FireflagIcon size={28}
+              onClick={(e) => placeFireflag(e, currentVideo)}
+              onTouchEnd={(e) => { e.preventDefault(); placeFireflag(e, currentVideo); }}
+              alt="Place fireflag" />
+            {!isLoggedIn && <LockBadge />}
+          </div>
         </div>
       )}
 
@@ -1179,11 +1199,11 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
               {/* COLOR */}
               <div
-                onClick={(e) => { e.stopPropagation(); setShowColorWheel(true); setDotState('hidden'); }}
-                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
-                  setShowColorWheel(true); setDotState('hidden'); }}
-                style={dotCircleStyle}>
+                onClick={openColorWheel}
+                onTouchEnd={(e) => { e.preventDefault(); openColorWheel(e); }}
+                style={{ ...dotCircleStyle, position:'relative' }}>
                 <span style={{ fontSize:'16px', lineHeight:1 }}>🎨</span>
+                {!isLoggedIn && <LockBadge />}
               </div>
 
               {/* WATCH */}
@@ -1200,19 +1220,21 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               <div
                 onClick={(e) => addToPersonalBest(e, currentVideo)}
                 onTouchEnd={(e) => { e.preventDefault(); addToPersonalBest(e, currentVideo); }}
-                style={{ ...dotCircleStyle,
+                style={{ ...dotCircleStyle, position:'relative',
                          cursor: personalBestVideos[currentVideo.video_id] ? 'default' : 'pointer' }}>
                 <span style={{ color:'#C8A951', fontSize:'16px', fontWeight:'bold', lineHeight:1 }}>
                   {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
                 </span>
+                {!isLoggedIn && <LockBadge />}
               </div>
 
               {/* FLEX CAMERA */}
               <div
                 onClick={openFlexCamera}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); openFlexCamera(e); }}
-                style={dotCircleStyle}>
+                style={{ ...dotCircleStyle, position:'relative' }}>
                 <FlexCamera style={{ width:'16px', height:'16px' }} />
+                {!isLoggedIn && <LockBadge />}
               </div>
               <input ref={flexCameraInputRef} type="file" accept="image/*" capture="environment"
                      onChange={handleFlexCameraFile} style={{ display:'none' }} />
@@ -1418,6 +1440,57 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </div>
       )}
 
+      {/* PROGRESSIVE REGISTRATION GATE — slide-up sheet for logged-out taps
+          on color / fireflag / personal best / flex */}
+      {regSheetOpen && (
+        <div style={{ position:'fixed', inset:0, zIndex:400, backgroundColor:'rgba(0,0,0,0.7)',
+                      display:'flex', alignItems:'flex-end', justifyContent:'center' }}
+             onClick={() => setRegSheetOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}
+               style={{ width:'100%', maxWidth:'480px', backgroundColor:'#0D0800',
+                        border:'1px solid #C8A951', borderBottom:'none',
+                        borderRadius:'16px 16px 0 0', padding:'28px 24px 32px',
+                        textAlign:'center', animation:'slideUpSheet 0.25s ease-out' }}>
+            <div style={{ width:'36px', height:'4px', backgroundColor:'#333',
+                          borderRadius:'2px', margin:'0 auto 20px' }} />
+            <span style={{ fontSize:'28px' }}>🔒</span>
+            <h3 style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F5E6C8',
+                         fontSize:'20px', letterSpacing:'3px', margin:'12px 0 6px' }}>
+              JOIN BEST TO CONTINUE
+            </h3>
+            <p style={{ color:'#8B7355', fontSize:'12px', letterSpacing:'1px', margin:'0 0 24px' }}>
+              Sign up to color, fireflag, save, and flex videos.
+            </p>
+            <div style={{ display:'flex', flexDirection:'column', gap:'12px' }}>
+              <button
+                onClick={() => { window.location.href = '/register'; }}
+                onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/register'; }}
+                style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
+                         color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
+                         padding:'14px', minHeight:'44px', cursor:'pointer' }}>
+                SIGN UP
+              </button>
+              <button
+                onClick={() => { window.location.href = '/login'; }}
+                onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/login'; }}
+                style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
+                         color:'#C8A951', backgroundColor:'transparent', border:'1px solid #C8A951',
+                         borderRadius:0, padding:'14px', minHeight:'44px', cursor:'pointer' }}>
+                LOG IN
+              </button>
+            </div>
+            <button
+              onClick={() => setRegSheetOpen(false)}
+              onTouchEnd={(e) => { e.preventDefault(); setRegSheetOpen(false); }}
+              style={{ marginTop:'16px', backgroundColor:'transparent', border:'none',
+                       color:'#555', fontSize:'11px', letterSpacing:'2px', cursor:'pointer',
+                       padding:'8px', minHeight:'44px' }}>
+              NOT NOW
+            </button>
+          </div>
+        </div>
+      )}
+
       <style>{`
         @keyframes pulse {
           0%,100% { text-shadow: 0 0 40px #C9A84C; }
@@ -1434,6 +1507,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         @keyframes slideInRight {
           from { opacity:0; transform:translateX(24px); }
           to   { opacity:1; transform:translateX(0); }
+        }
+        @keyframes slideUpSheet {
+          from { transform:translateY(100%); }
+          to   { transform:translateY(0); }
         }
       `}</style>
     </div>
