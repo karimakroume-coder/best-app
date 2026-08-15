@@ -8,8 +8,8 @@ import ColorWheel from './ColorWheel';
 import StripKeyboard from './StripKeyboard';
 import FireflagIcon from './FireflagIcon';
 import HuntGame from './HuntGame';
-import { ReactComponent as GoldDot } from './assets/icons/gold-dot.svg';
 import { ReactComponent as FlexCamera } from './assets/icons/flex-camera.svg';
+import MandalaButton from './MandalaButton';
 
 const RANK_STYLES = {
   1:  { color: '#C9A84C', fontSize: '72px', fontWeight: 'bold' },
@@ -1155,14 +1155,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         <div style={{ position:'absolute', bottom:'120px', right:'24px', zIndex:10 }}>
 
           {dotState === 'single' && (
-            <div onClick={(e) => { e.stopPropagation(); setDotState('three'); }}
-                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setDotState('three'); }}
-                 style={{ width:'44px', height:'44px', display:'flex',
-                          alignItems:'center', justifyContent:'center',
-                          cursor:'pointer' }}>
-              <GoldDot style={{ animation:'fadeIn 0.3s ease, goldDotPulse 2s ease-in-out infinite',
-                                borderRadius:'50%', pointerEvents:'none' }} />
-            </div>
+            <MandalaButton
+              size={120}
+              onClick={(e) => { e.stopPropagation(); setDotState('three'); }}
+              onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setDotState('three'); }}
+              style={{ animation:'fadeIn 0.3s ease' }}
+            />
           )}
 
           {dotState === 'three' && (
@@ -1425,10 +1423,6 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         @keyframes popIn {
           from { opacity:0; transform:scale(0); }
           to   { opacity:1; transform:scale(1); }
-        }
-        @keyframes goldDotPulse {
-          0%, 100% { box-shadow: 0 0 8px rgba(200,169,81,0.4); }
-          50%      { box-shadow: 0 0 16px rgba(200,169,81,0.8); }
         }
         @keyframes slideInRight {
           from { opacity:0; transform:translateX(24px); }
