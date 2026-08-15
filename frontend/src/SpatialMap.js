@@ -1572,7 +1572,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           <canvas ref={flexCanvasRef} style={{ display:'none' }} />
 
           {flexSnapped && flexSnapshotUrl ? (
-            <img src={flexSnapshotUrl} alt="Your flex photo"
+            <img src={flexSnapshotUrl} alt="Flex snapshot"
                  style={{ width:'120px', height:'120px', borderRadius:'50%',
                           objectFit:'cover', border:'1px solid #C8A951',
                           margin:'24px 0 8px', transform:'scaleX(-1)' }} />
