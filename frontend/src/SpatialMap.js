@@ -140,7 +140,7 @@ function letterPositionForIndex(i) {
   };
 }
 
-// ── VINTAGE BUTTON — shared base for RANDOM / ZOOM / WATCH ON YOUTUBE ──────
+// ── VINTAGE BUTTON — shared base for RANDOM / ZOOM ─────────────────────────
 // Text-label styling (no fill, square corners) with a guaranteed 44x44
 // touch target regardless of how small the visible padding reads.
 const vintageButtonBase = {
@@ -1062,7 +1062,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                   userSelect:'none' }}
          ref={singleCardRef}
          {...bind()} {...pinchBind()}
-         onTouchStart={onTouchStartNav}
+         onTouchStart={(e) => { resetFocusTimer(); onTouchStartNav(e); }}
          onTouchEnd={onTouchEndNav} onTouchCancel={onTouchCancelNav}
          onDoubleClick={() => { if (markStage === 'idle') navigateToCoord(0, 0); }}
          onClick={() => {
@@ -1104,7 +1104,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
         {/* BEST LOGO */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center',
-                      fontFamily:'Pacifico, cursive', fontSize:'48px', color:'#F5E6C8',
+                      fontFamily:'Pacifico, cursive',
+                      fontSize: focusMode ? '24px' : '48px', color:'#F5E6C8',
                       textShadow:'2px 2px 0 #C8A951, 4px 4px 0 #B8860B, 6px 6px 0 #8B6914, 8px 8px 0 rgba(0,0,0,0.5)',
                       marginBottom:'8px',
                       transition:'all 0.8s ease-out',
@@ -1645,7 +1646,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       {regSheetOpen && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, height:'220px',
                       backgroundColor:'#0D0800', borderTop:'2px solid #C8A951',
-                      zIndex:302, display:'flex', flexDirection:'column',
+                      zIndex:400, display:'flex', flexDirection:'column',
                       alignItems:'center', justifyContent:'center', gap:'10px',
                       animation:'regSheetUp 0.3s ease-out',
                       boxShadow:'0 -10px 40px rgba(0,0,0,0.7)' }}>
