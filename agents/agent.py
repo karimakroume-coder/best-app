@@ -77,7 +77,9 @@ class BESTAgent:
 
     def get_rankings(self) -> list:
         try:
-            category = random.choice(self.profile["content_preferences"])
+            preferred = self.profile["content_preferences"]
+            # Fetch from the agent's top preferred category for better targeting
+            category = preferred[0] if preferred else "global"
             if category in ["music", "gaming", "sports", "entertainment"]:
                 url = f"{BEST_API}/ranking/category/{category}"
             else:
@@ -89,6 +91,15 @@ class BESTAgent:
         except Exception as e:
             print(f"  {self.name} fetch error: {e}")
             return []
+
+    def _is_preferred_category(self, video: dict) -> bool:
+        """Check if video matches any of the agent's preferred content categories."""
+        pref = [c.lower() for c in self.profile.get("content_preferences", [])]
+        cat_id = str(video.get("category_id", ""))
+        cat_map = {"10": "music", "20": "gaming", "17": "sports",
+                    "24": "entertainment", "22": "people"}
+        cat_name = cat_map.get(cat_id, "")
+        return cat_name in pref
 
     def _build_prompt(self, video: dict) -> str:
         return f"""You are {self.name}, a BEST platform user from {self.profile['region']}.
@@ -119,21 +130,24 @@ Color must be one of: red, blue, green, yellow, black, white"""
 
         # Fallback: rule-based decision when Gemini unavailable
         score = video.get("total_score", 0)
+        is_preferred = self._is_preferred_category(video)
 
-        color_idx = 0
-        if score > 0.4:
-            color_idx = 0
-        elif score > 0.25:
-            color_idx = 1
-        else:
-            color_idx = 2
+        # Pick color from agent's preferred ranking (top of list = most likely)
+        color_ranking = self.profile["color_ranking"]
+        preferred_colors = [c for c in color_ranking if c != "gold"]
+        color = preferred_colors[0] if preferred_colors else "blue"
 
-        color = self.profile["color_ranking"][color_idx]
-        if color == "gold":
-            color = self.profile["color_ranking"][1]
+        # Higher-score videos get the top color; lower-score get secondary
+        if score < 0.25 and len(preferred_colors) > 1:
+            color = preferred_colors[1]
+        if score < 0.15 and len(preferred_colors) > 2:
+            color = preferred_colors[2]
 
-        assign = score > 0.2 and random.random() > 0.4
+        # More likely to assign color to preferred-category content
+        assign_chance = 0.6 if is_preferred else 0.3
+        assign = score > 0.15 and random.random() < assign_chance
 
+        # Fireflag based on threshold (selective agents flag rarely)
         fireflag = (
             score > 0.35 and
             random.random() > self.profile["fireflag_threshold"]
@@ -153,7 +167,7 @@ Color must be one of: red, blue, green, yellow, black, white"""
             "color": color,
             "word": word,
             "fireflag": fireflag,
-            "reason": "rule-based fallback"
+            "reason": f"rule-based fallback ({'preferred' if is_preferred else 'browse'})"
         }
 
     def assign_color(self, video_id: str, color: str, word: str) -> bool:
@@ -237,9 +251,12 @@ Color must be one of: red, blue, green, yellow, black, white"""
             return
 
         videos_to_watch = random.randint(3, 8)
-        sample = random.sample(rankings, min(videos_to_watch, len(rankings)))
+        # Sort so preferred-category videos come first (real humans engage more with what they like)
+        ranked = sorted(rankings, key=lambda v: (not self._is_preferred_category(v), -v.get("total_score", 0)))
+        sample = random.sample(ranked[:min(15, len(ranked))], min(videos_to_watch, min(15, len(ranked))))
 
         colors_assigned = 0
+        max_colors = 5 if self.profile.get("activity_level") == "high" else 3
         flags_placed = 0
 
         for video in sample:
@@ -252,7 +269,7 @@ Color must be one of: red, blue, green, yellow, black, white"""
             video_id = video.get("video_id", "")
             title = video.get("title", "")[:40]
 
-            if decision.get("assign_color") and colors_assigned < 3:
+            if decision.get("assign_color") and colors_assigned < max_colors:
                 color = decision.get("color", "blue")
                 word = decision.get("word", "real")[:20]
                 if color == "gold":

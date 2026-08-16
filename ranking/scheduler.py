@@ -8,7 +8,7 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from apscheduler.schedulers.background import BackgroundScheduler
 from ranking.fetcher import fetch_trending
 from ranking.scorer import compute_score
-from database.client import save_video, save_ranking
+from database.client import save_video, save_ranking, save_daily_snapshot
 from ai.analyzer import get_peak_moment
 
 
@@ -39,6 +39,12 @@ def run_ranking_pipeline():
                 country="US",
                 peak_moment_seconds=video.get("peak_moment_seconds", 0),
             )
+
+        # Daily snapshot: save top 100 at midnight UTC
+        now = datetime.utcnow()
+        if now.hour == 0 and now.minute < 15:
+            save_daily_snapshot(scored)
+            print(f"Daily snapshot saved — {min(100, len(scored))} videos.")
 
         print(f"Ranking updated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} — {len(scored)} videos ranked.")
 

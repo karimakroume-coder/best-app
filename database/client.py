@@ -80,3 +80,20 @@ def fetch_peak_moments(video_ids: list) -> dict:
         row["video_id"]: row.get("peak_moment_seconds", 0) or 0
         for row in (result.data or [])
     }
+
+
+def save_daily_snapshot(scored_videos: list):
+    """Save top 100 videos as a daily snapshot for historical tracking."""
+    from datetime import datetime, timezone
+    client = get_client()
+    today = datetime.now(timezone.utc).date().isoformat()
+    rows = []
+    for rank, video in enumerate(scored_videos[:100], 1):
+        rows.append({
+            "snapshot_date": today,
+            "video_id": video["video_id"],
+            "rank": rank,
+            "total_score": video.get("total_score", 0),
+        })
+    if rows:
+        client.table("ranking_snapshots").insert(rows).execute()
