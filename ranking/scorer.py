@@ -1,4 +1,22 @@
 from datetime import datetime, timezone
+from database.client import get_client
+
+
+def _get_assignment_stats(video_id):
+    """Discovery scores and countries of everyone who's marked this video."""
+    client = get_client()
+    assignments = client.table("color_assignments").select("user_id, country_code").eq("video_id", video_id).execute()
+    rows = assignments.data or []
+    user_ids = [r["user_id"] for r in rows if r.get("user_id")]
+    country_codes = [r["country_code"] for r in rows if r.get("country_code")]
+
+    discovery_scores = []
+    for uid in user_ids:
+        user_row = client.table("users").select("discovery_score").eq("user_id", uid).execute()
+        if user_row.data:
+            discovery_scores.append(user_row.data[0].get("discovery_score", 0) or 0)
+
+    return discovery_scores, country_codes
 
 
 def compute_score(video: dict, countries_present: list = None) -> dict:
@@ -30,12 +48,19 @@ def compute_score(video: dict, countries_present: list = None) -> dict:
         ratio = like_count / view_count
         retention_score = min(ratio / 0.10, 1.0)
 
-    if countries_present and len(countries_present) > 0:
-        geo_score = min(len(countries_present) / 10, 1.0)
+    discovery_scores, countries = _get_assignment_stats(video.get("video_id"))
+
+    if discovery_scores:
+        elite_score = min(sum(discovery_scores) / len(discovery_scores) / 1000.0, 1.0)
+    else:
+        elite_score = 0.0
+
+    if countries:
+        countries_present = countries
+        geo_score = min(len(countries) / 10, 1.0)
     else:
         geo_score = 0.1
 
-    elite_score = 0.5
     spread_score = 0.5
 
     total_score = (

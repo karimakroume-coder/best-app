@@ -1,29 +1,30 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 
-const COLORS = [
+const BASE_COLORS = [
   { name: 'red',    hex: '#E74C3C', label: 'RED' },
   { name: 'blue',   hex: '#2980B9', label: 'BLUE' },
   { name: 'green',  hex: '#27AE60', label: 'GREEN' },
   { name: 'yellow', hex: '#F1C40F', label: 'YELLOW' },
   { name: 'black',  hex: '#2C2C2C', label: 'BLACK', border: '#888888' },
   { name: 'white',  hex: '#FFFFFF', label: 'WHITE', border: '#555555' },
-  { name: 'gold',   hex: '#C9A84C', label: 'GOLD', locked: true },
+  { name: 'gold',   hex: '#C9A84C', label: 'GOLD' },
 ];
 
-function ColorWheel({ videoId, userId, onColorSelected }) {
+// The actual backend assignment (with word + snapshot) happens later in
+// SpatialMap's Mark flow, once the Strip keyboard word and snapshot exist —
+// this only picks the color and hands it off via onColorSelected.
+function ColorWheel({ onColorSelected, discoveryScore = 0 }) {
   const [selected, setSelected] = useState(null);
   const [hovering, setHovering] = useState(null);
+
+  const COLORS = BASE_COLORS.map(c =>
+    c.name === 'gold' ? { ...c, locked: (discoveryScore || 0) < 500 } : c
+  );
 
   const handleColorClick = (e, color) => {
     if (color.locked) return;
     setSelected(color.name);
     const origin = { x: e.clientX, y: e.clientY };
-    axios.post('https://web-production-a267.up.railway.app/color/assign', {
-      user_id: userId,
-      video_id: videoId,
-      color: color.name
-    }).catch(err => console.log('Color assign error:', err));
     if (onColorSelected) onColorSelected(color, origin);
   };
 

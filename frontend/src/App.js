@@ -225,6 +225,7 @@ function Rankings() {
             userId={userId}
             darkMode={darkMode}
             huntActive={huntActive}
+            discoveryScore={discoveryScore ?? 0}
             onPersonalBestAdded={() => {
               setDiscoveryScore(prev => prev !== null ? prev + 50 : 50);
             }}

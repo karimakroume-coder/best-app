@@ -148,10 +148,18 @@ def assign_color(payload: dict):
     user_id = payload.get("user_id")
     video_id = payload.get("video_id")
     color = payload.get("color","").lower()
+    word = payload.get("word")
+    snapshot_url = payload.get("snapshot_url")
     if color not in valid_colors:
         raise HTTPException(status_code=400, detail=f"Invalid color")
+    if word and len(word) > 50:
+        raise HTTPException(status_code=400, detail="word must be 50 characters or fewer")
     client = get_client()
-    client.table("color_assignments").insert({"user_id": user_id, "video_id": video_id, "color": color}).execute()
+    row = {"user_id": user_id, "video_id": video_id, "color": color, "word": word, "snapshot_url": snapshot_url}
+    profile = client.table("users").select("country_code").eq("user_id", user_id).execute()
+    if profile.data:
+        row["country_code"] = profile.data[0].get("country_code")
+    client.table("color_assignments").insert(row).execute()
     user_data = client.table("users").select("discovery_score").eq("user_id", user_id).execute()
     current_score = user_data.data[0]["discovery_score"] if user_data.data else 0
     client.table("users").update({"discovery_score": current_score + 5}).eq("user_id", user_id).execute()
@@ -171,13 +179,12 @@ def place_fireflag(payload: dict):
     if (weekly.count or 0) >= 10:
         raise HTTPException(status_code=429, detail="You have used all your fireflags this week")
 
-    # No deactivation mechanism exists yet, so "active" is every fireflag
-    # this user has ever placed.
-    active = client.table("fireflags").select("id", count="exact").eq("user_id", user_id).execute()
+    active = client.table("fireflags").select("id", count="exact") \
+        .eq("user_id", user_id).eq("is_active", True).gte("placed_at", week_ago).execute()
     if (active.count or 0) >= 20:
         raise HTTPException(status_code=429, detail="You have reached your maximum of 20 active fireflags")
 
-    client.table("fireflags").insert({"user_id": user_id, "video_id": video_id}).execute()
+    client.table("fireflags").insert({"user_id": user_id, "video_id": video_id, "is_active": True}).execute()
     user_data = client.table("users").select("discovery_score").eq("user_id", user_id).execute()
     current_score = user_data.data[0]["discovery_score"] if user_data.data else 0
     client.table("users").update({"discovery_score": current_score + 20}).eq("user_id", user_id).execute()
@@ -186,16 +193,18 @@ def place_fireflag(payload: dict):
 @app.get("/color/distribution/{video_id}")
 def get_color_distribution(video_id: str):
     client = get_client()
-    result = client.table("color_assignments").select("color").eq("video_id", video_id).execute()
+    result = client.table("color_assignments").select("color, word, snapshot_url").eq("video_id", video_id).execute()
     total = len(result.data)
     if total == 0:
-        return {"video_id": video_id, "total": 0, "distribution": {}}
+        return {"video_id": video_id, "total": 0, "distribution": {}, "marks": []}
     counts = {}
+    marks = []
     for row in result.data:
         c = row["color"]
         counts[c] = counts.get(c, 0) + 1
+        marks.append({"color": c, "word": row.get("word"), "snapshot_url": row.get("snapshot_url")})
     distribution = {c: round((n/total)*100, 1) for c, n in counts.items()}
-    return {"video_id": video_id, "total": total, "distribution": distribution}
+    return {"video_id": video_id, "total": total, "distribution": distribution, "marks": marks}
 
 @app.post("/personal-best/add")
 def add_personal_best(payload: dict):

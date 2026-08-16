@@ -271,7 +271,7 @@ function WhisperCard({ coordKey }) {
   );
 }
 
-function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, onBeforeColor, darkMode, huntActive, onHuntComplete, onHuntStop }) {
+function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, onBeforeColor, darkMode, huntActive, onHuntComplete, onHuntStop, discoveryScore = 0 }) {
   console.log('SpatialMap rankings prop:', rankings?.length);
 
   const [currentX, setCurrentX]               = useState(0);
@@ -621,6 +621,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       if (markVideo && markColor) {
         setAssignedColors(prev => ({ ...prev, [markVideo.video_id]: markColor.name }));
         setAssignedWords(prev => ({ ...prev, [markVideo.video_id]: markWord }));
+        axios.post('https://web-production-a267.up.railway.app/color/assign', {
+          user_id: userId,
+          video_id: markVideo.video_id,
+          color: markColor.name,
+          word: markWord || null,
+          snapshot_url: markSnapshotUrl || null,
+        }).catch(err => console.log('Color assign error:', err));
         if (onColorAssigned) onColorAssigned(markVideo.video_id, markColor.name);
       }
       setMarkStage('idle');
@@ -630,7 +637,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       setDotState('single');
     }, 800);
     return () => clearTimeout(t);
-  }, [markStage, markVideo, markColor, markWord, onColorAssigned]);
+  }, [markStage, markVideo, markColor, markWord, markSnapshotUrl, onColorAssigned, userId]);
 
   // ── MOUNT: initial drop onto a random rank ──────────────────────────────
   // Guards against the DROP replaying if this effect re-runs (e.g. a
@@ -1552,9 +1559,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               HOW DOES THIS VIDEO MAKE YOU FEEL
             </p>
             <ColorWheel
-              videoId={currentVideo.video_id}
-              userId={userId}
               onColorSelected={(color) => startMark(color)}
+              discoveryScore={discoveryScore}
             />
           </div>
         </div>
