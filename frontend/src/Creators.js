@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 
 const API_BASE = 'https://web-production-a267.up.railway.app';
@@ -64,6 +65,8 @@ const CATEGORIES_LIST = [
 ];
 
 function Creators() {
+  const [searchParams] = useSearchParams();
+  const ref = searchParams.get('ref') || '';
   const [timeLeft, setTimeLeft] = useState(getTimeLeft());
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -116,6 +119,7 @@ function Creators() {
         ...form,
         subscriber_count: form.subscriber_count ? parseInt(form.subscriber_count) : null,
         why_best: form.why_best.slice(0, 200),
+        ref: ref || undefined,
       });
       setApplicationId(res.data.application_id);
       setApplied(true);
@@ -127,7 +131,7 @@ function Creators() {
       }
     }
     setSubmitting(false);
-  }, [form, submitting, applied]);
+  }, [form, submitting, applied, ref]);
 
   const inputStyle = {
     width: '100%', padding: '12px 14px', marginBottom: '10px',

@@ -9,6 +9,7 @@ import ColorOnboarding from './ColorOnboarding';
 import PersonalBest from './PersonalBest';
 import Countdown from './Countdown';
 import Creators from './Creators';
+import CreatorOutreachKit from './CreatorOutreachKit';
 
 const DEFAULT_USER_ID = 'a307cc62-3afd-47b0-9911-9300a934d788';
 
@@ -181,6 +182,7 @@ function App() {
         <Route path="/personal-best" element={<PersonalBest userId={DEFAULT_USER_ID} />} />
         <Route path="/launch" element={<Countdown />} />
         <Route path="/creators" element={<Creators />} />
+        <Route path="/creator-kit" element={<CreatorOutreachKit />} />
       </Routes>
     </BrowserRouter>
   );

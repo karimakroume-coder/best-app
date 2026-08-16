@@ -583,6 +583,7 @@ def apply_creator(payload: dict):
     subscriber_count = payload.get("subscriber_count")
     primary_category = payload.get("primary_category", "")
     why_best = payload.get("why_best", "")[:200]
+    ref = payload.get("ref", "").strip() or None
     if not name or not email:
         raise HTTPException(status_code=400, detail="name and email are required")
     client = get_client()
@@ -593,6 +594,7 @@ def apply_creator(payload: dict):
         "subscriber_count": subscriber_count,
         "primary_category": primary_category,
         "why_best": why_best,
+        "ref": ref,
         "status": "pending",
     }).execute()
     application_id = result.data[0]["id"] if result.data else None
@@ -644,6 +646,29 @@ def score_preview(youtube_url: str = ""):
         "videos_ranked": len(channel_videos),
         "message": f"Your content ranks in the top {pct}% on BEST",
     }
+
+
+# ── CREATOR REFERRALS ───────────────────────────────────────────────────
+
+@app.get("/creator/referrals")
+def get_creator_referrals():
+    client = get_client()
+    result = client.table("creator_applications").select("ref, name, email, applied_at") \
+        .not_.is_("ref", "null").order("applied_at", desc=True).execute()
+    rows = result.data or []
+    groups = {}
+    for r in rows:
+        key = r["ref"]
+        if key not in groups:
+            groups[key] = {"ref": key, "count": 0, "applications": []}
+        groups[key]["count"] += 1
+        groups[key]["applications"].append({
+            "name": r["name"],
+            "email": r["email"],
+            "applied_at": r["applied_at"],
+        })
+    referrals = sorted(groups.values(), key=lambda x: x["count"], reverse=True)
+    return {"total_referrals": len(rows), "referrers": referrals}
 
 
 # ── LAUNCH NOTIFY ────────────────────────────────────────────────────────
