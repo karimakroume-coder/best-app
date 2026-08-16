@@ -3,18 +3,24 @@ from database.client import get_client
 
 
 def _get_assignment_stats(video_id):
-    """Discovery scores and countries of everyone who's marked this video."""
+    """Discovery scores and countries of everyone who's marked this video.
+
+    Batches the discovery_score lookup with a single .in_() query instead of
+    one query per assigner — compute_score runs once per video in a ranking
+    pass, so a per-assignment query here turned into an N+1 that could take
+    /ranking/global from milliseconds to minutes (or a timeout) once videos
+    had more than a handful of color assignments each.
+    """
     client = get_client()
     assignments = client.table("color_assignments").select("user_id, country_code").eq("video_id", video_id).execute()
     rows = assignments.data or []
-    user_ids = [r["user_id"] for r in rows if r.get("user_id")]
+    user_ids = list({r["user_id"] for r in rows if r.get("user_id")})
     country_codes = [r["country_code"] for r in rows if r.get("country_code")]
 
     discovery_scores = []
-    for uid in user_ids:
-        user_row = client.table("users").select("discovery_score").eq("user_id", uid).execute()
-        if user_row.data:
-            discovery_scores.append(user_row.data[0].get("discovery_score", 0) or 0)
+    if user_ids:
+        users = client.table("users").select("discovery_score").in_("user_id", user_ids).execute()
+        discovery_scores = [u.get("discovery_score", 0) or 0 for u in (users.data or [])]
 
     return discovery_scores, country_codes
 
