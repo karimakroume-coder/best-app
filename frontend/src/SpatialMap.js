@@ -748,6 +748,35 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     }
   }, [markStage, currentX, currentY, navigateToCoord, dotState, resetFocusTimer]);
 
+  // ── 3x3 GRID SWIPE NAV ───────────────────────────────────────────────────
+  // The grid view has no useDrag binding of its own (only pinchBind for
+  // zoom), so it never picked up swipes — separate from onTouchStartNav/
+  // onTouchEndNav above since those also drive the single-card dot UI and
+  // focus timer, neither of which apply here.
+  const gridTouchStartRef = useRef(null);
+
+  const onGridTouchStart = useCallback((e) => {
+    if (e.touches.length !== 1) { gridTouchStartRef.current = null; return; }
+    const t = e.touches[0];
+    gridTouchStartRef.current = { x: t.clientX, y: t.clientY };
+  }, []);
+
+  const onGridTouchEnd = useCallback((e) => {
+    const start = gridTouchStartRef.current;
+    gridTouchStartRef.current = null;
+    if (!start || e.changedTouches.length !== 1) return;
+    const t = e.changedTouches[0];
+    const deltaX = t.clientX - start.x;
+    const deltaY = t.clientY - start.y;
+    const absX = Math.abs(deltaX);
+    const absY = Math.abs(deltaY);
+    if (absX > 50 && absX > absY) {
+      navigateToCoord(currentX + (deltaX < 0 ? 1 : -1), currentY);
+    } else if (absY > 50 && absY > absX) {
+      navigateToCoord(currentX, currentY + (deltaY < 0 ? 1 : -1));
+    }
+  }, [currentX, currentY, navigateToCoord]);
+
   const cycleZoom = useCallback(() => {
     setZoomLevel(prev => prev === 1 ? 3 : prev === 3 ? 5 : prev === 5 ? 99 : 1);
   }, []);
@@ -1058,18 +1087,21 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                     display:'grid', gridTemplateColumns:'repeat(3,1fr)',
                     gridTemplateRows:'repeat(3,1fr)', gap:'3px', padding:'3px',
                     touchAction:'none', position:'relative' }}
-           {...pinchBind()}>
+           {...pinchBind()}
+           onTouchStart={onGridTouchStart}
+           onTouchEnd={onGridTouchEnd}>
         <button onClick={(e) => { e.stopPropagation(); cycleZoom(); }}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); cycleZoom(); }}
                 style={zoomButtonStyle}>
           ZOOM {zoomLevel}×
         </button>
-        {cells.map(({ dx, dy }) => {
+        {cells.map(({ dx, dy }, idx) => {
           const isCenter = dx === 0 && dy === 0;
           const cellX = currentX + dx, cellY = currentY + dy;
           const rank = coordToRank[`${cellX},${cellY}`];
           const v = rank ? rankings[rank - 1] : null;
           const isEmpty = !v || !v.video_id;
+          console.log('card', idx, 'video:', v?.video_id, 'isEmpty:', isEmpty);
           const flagged = v && !!fireflaggedVideos[v.video_id];
           if (darkMode && v && !flagged && !isEmpty) {
             return (
