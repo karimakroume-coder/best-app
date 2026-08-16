@@ -107,3 +107,19 @@ if __name__ == "__main__":
     for v in videos[:5]:
         s = compute_score(v, countries_present=["US"])
         print(f"  {v['title'][:40]} Score: {s['total_score']}")
+
+
+def is_creator_content(video: dict) -> bool:
+    channel = (video.get("channel_name") or "").lower()
+    if not channel:
+        return False
+    official_markers = [
+        "vevo", "topic", "records", "official", "network", "news", "tv",
+        "studio", "media", "entertainment", "bbc", "cnn", "netflix", "disney",
+        "warner", "sony", "universal", "nbc", "fox", "cbs", "abc", "mtv",
+        "espn", "paramount", "nickelodeon", "cartoon",
+    ]
+    for marker in official_markers:
+        if marker in channel:
+            return False
+    return True

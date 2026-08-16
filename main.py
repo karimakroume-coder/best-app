@@ -3,11 +3,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
-import base64, binascii, hashlib, os, re, sys, uuid
+import base64, binascii, hashlib, os, re, sys, time, uuid
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from ranking.fetcher import fetch_trending
-from ranking.scorer import compute_score
-from database.client import get_client
+from ranking.scorer import compute_score, is_creator_content
+from database.client import get_client, fetch_peak_moments
 from auth.auth import create_access_token, get_token_from_header
 from apscheduler.schedulers.background import BackgroundScheduler
 from ranking.scheduler import run_ranking_pipeline
@@ -26,6 +26,24 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 
 CATEGORY_IDS = {"music":"10","gaming":"20","sports":"17","entertainment":"24","people":"22"}
 
+RATE_LIMITS = {"color": 10, "fireflag": 5, "flex": 10}
+RATE_WINDOW_SECONDS = 60
+MIN_INTERVAL_SECONDS = 6
+_rate_buckets: dict = {}
+
+def enforce_rate_limit(user_id: str, endpoint: str):
+    if not user_id: return
+    key = f"{user_id}:{endpoint}"
+    now = time.time()
+    timestamps = [t for t in _rate_buckets.get(key,[])
+                  if now - t < RATE_WINDOW_SECONDS]
+    if len(timestamps) >= RATE_LIMITS.get(endpoint, 10):
+        raise HTTPException(429, f"Rate limit exceeded")
+    if timestamps and (now-timestamps[-1]) < MIN_INTERVAL_SECONDS:
+        raise HTTPException(429, f"Too many requests")
+    timestamps.append(now)
+    _rate_buckets[key] = timestamps
+
 class AuthRequest(BaseModel):
     email: str
     password: str
@@ -39,7 +57,25 @@ class FlexPlaceRequest(BaseModel):
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    client = get_client()
+    try:
+        rankings_count = len(client.table("rankings").select("id", count="exact").execute().data or [])
+        users_count = len(client.table("users").select("user_id", count="exact").execute().data or [])
+        colors_count = len(client.table("color_assignments").select("id", count="exact").execute().data or [])
+        fireflags_count = len(client.table("fireflags").select("id", count="exact").execute().data or [])
+        last_rank = client.table("rankings").select("recorded_at").order("recorded_at", desc=True).limit(1).execute()
+        last_update = last_rank.data[0]["recorded_at"] if last_rank.data else None
+        return {
+            "status": "ok",
+            "rankings_count": rankings_count,
+            "users_count": users_count,
+            "color_assignments_count": colors_count,
+            "fireflags_count": fireflags_count,
+            "last_ranking_update": last_update,
+            "agents_running": 0,
+        }
+    except Exception as e:
+        return {"status": "degraded", "error": str(e)}
 
 @app.post("/auth/register")
 def register(req: AuthRequest):
@@ -127,6 +163,23 @@ def get_country_ranking(country_code: str):
     scored.sort(key=lambda x: x["total_score"], reverse=True)
     return [{"rank": r+1, "video_id": v["video_id"], "title": v["title"], "channel_name": v["channel_name"], "view_count": v["view_count"], "total_score": v["total_score"], "thumbnail_url": v["thumbnail_url"]} for r, v in enumerate(scored)]
 
+@app.get("/ranking/creators")
+def get_creators_ranking():
+    videos = fetch_trending("10", "US")
+    scored = []
+    for video in videos:
+        if not is_creator_content(video): continue
+        score = compute_score(video, countries_present=["US"])
+        scored.append({**video, **score})
+    scored.sort(key=lambda x: x["total_score"], reverse=True)
+    peak_map = fetch_peak_moments([v["video_id"] for v in scored])
+    return [{"rank": r+1, "video_id": v["video_id"],
+             "title": v["title"], "channel_name": v["channel_name"],
+             "thumbnail_url": v["thumbnail_url"],
+             "total_score": v["total_score"],
+             "peak_moment_seconds": peak_map.get(v["video_id"],0)}
+            for r,v in enumerate(scored)]
+
 @app.get("/ranking/history/{video_id}")
 def get_video_history(video_id: str):
     client = get_client()
@@ -159,6 +212,7 @@ def assign_color(payload: dict):
         raise HTTPException(status_code=400, detail=f"Invalid color")
     if word and len(word) > 50:
         raise HTTPException(status_code=400, detail="word must be 50 characters or fewer")
+    enforce_rate_limit(user_id, "color")
     client = get_client()
     row = {"user_id": user_id, "video_id": video_id, "color": color, "word": word, "snapshot_url": snapshot_url}
     profile = client.table("users").select("country_code").eq("user_id", user_id).execute()
@@ -176,6 +230,7 @@ def place_fireflag(payload: dict):
     video_id = payload.get("video_id")
     if not user_id or not video_id:
         raise HTTPException(status_code=400, detail="user_id and video_id are required")
+    enforce_rate_limit(user_id, "fireflag")
     client = get_client()
 
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
@@ -284,6 +339,7 @@ def remove_personal_best(payload: dict):
 
 @app.post("/flex/place")
 def place_flex(req: FlexPlaceRequest):
+    enforce_rate_limit(req.user_id, "flex")
     client = get_client()
 
     photo_bytes = req.photo_base64

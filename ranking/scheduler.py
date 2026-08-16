@@ -9,6 +9,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from ranking.fetcher import fetch_trending
 from ranking.scorer import compute_score
 from database.client import save_video, save_ranking
+from ai.analyzer import get_peak_moment
 
 
 def run_ranking_pipeline():
@@ -20,6 +21,7 @@ def run_ranking_pipeline():
         scored = []
         for video in videos:
             score = compute_score(video)
+            video["peak_moment_seconds"] = get_peak_moment(video) or 0
             scored.append({**video, **score})
 
         scored.sort(key=lambda x: x["total_score"], reverse=True)
@@ -34,7 +36,8 @@ def run_ranking_pipeline():
                 geo=video["geo_score"],
                 retention=video["retention_score"],
                 platform="youtube",
-                country="US"
+                country="US",
+                peak_moment_seconds=video.get("peak_moment_seconds", 0),
             )
 
         print(f"Ranking updated at {datetime.now().strftime('%Y-%m-%d %H:%M:%S')} — {len(scored)} videos ranked.")

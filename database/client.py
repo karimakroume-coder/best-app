@@ -37,7 +37,7 @@ def save_video(video_dict: dict):
 
 def save_ranking(video_id: str, rank: int, score: float,
                  velocity: float, geo: float, retention: float,
-                 platform: str, country: str):
+                 platform: str, country: str, peak_moment_seconds: int = 0):
     client = get_client()
     data = {
         "video_id":        video_id,
@@ -48,6 +48,7 @@ def save_ranking(video_id: str, rank: int, score: float,
         "retention_score": retention,
         "platform":        platform,
         "country_code":    country,
+        "peak_moment_seconds": peak_moment_seconds,
     }
     response = client.table("rankings").insert(data).execute()
     return response
@@ -63,3 +64,19 @@ def fetch_rankings(limit: int = 100):
         .execute()
     )
     return response.data
+
+
+def fetch_peak_moments(video_ids: list) -> dict:
+    if not video_ids:
+        return {}
+    client = get_client()
+    result = (
+        client.table("videos")
+        .select("video_id, peak_moment_seconds")
+        .in_("video_id", video_ids)
+        .execute()
+    )
+    return {
+        row["video_id"]: row.get("peak_moment_seconds", 0) or 0
+        for row in (result.data or [])
+    }
