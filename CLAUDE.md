@@ -200,17 +200,45 @@ COMPLETE:
 - /ranking/global optimized (no longer writes to Supabase on every request — fixed intermittent 500s)
 - YouTube IFrame API — real video playback in single-card view (YouTubePlayer.js embedded in SpatialMap.js, 20% volume, pauses on color wheel)
 - Online AI agents on GitHub Actions (.github/workflows/agents.yml — runs python -m agents.manager every 30 minutes)
+- Mandala Control Center (3 rotating gold rings)
+- FLEX camera panel (live selfie, SNAP, overlays)
+- FLEX wall (N FLEXES counter + scattered mosaic)
+- Color onboarding screen (7 draggable circles)
+- Cinematic focus mode (6 seconds, tap to return)
+- YouTube circular red play button
+- Progressive registration gate (lock badges)
+- /creators founding creator page
+- /launch countdown page
+- Android APK built (debug, Capacitor)
+- Whisper system (built, needs deploy)
+- All 11 SVG icons from Figma Design System
+- Figma MCP connected to Claude Desktop
+- Rive installed (0.8.5390)
+- OpenCode identified as backup coding tool
+- Task registry started (T001-T017)
 
 IN PROGRESS THIS SESSION:
 - Android PWA installation on phone
 - AI agents system (20 agents, 20 countries)
 - Personal Best 100 implementation (backend endpoints + add button live; no dedicated browse/view screen yet)
+- T001: Gap analysis report (MonkeyCode)
+- T013: Whisper system deploy
+- T014: AI poetic descriptions
+- T015: Mandala Control Center full UI rebuild
+- T016: Five Map System + B navigation
+- T017: Cinematic map transitions
 
-COMING NEXT:
-- Daily shared Hunt target (backend endpoint needed)
-- Hunt leaderboard
-- React Native conversion (Phase 2)
-- Countdown page for launch
+COMING NEXT (priority order):
+1. T001 Gap report — understand exact state
+2. T015 Mandala Control Center full rebuild
+3. T016 Five Map System + B navigation
+4. T013 Whisper system deploy
+5. T014 AI poetic descriptions
+6. T017 Cinematic map transitions
+7. React Native conversion (Phase 2 — September)
+8. App Store + Google Play submission
+9. Founding creator outreach (100 creators)
+10. Estonian OÜ formation
 
 ---
 
@@ -241,6 +269,91 @@ the Bloomberg Terminal of culture.
 6. Independent: never financially tied to any platform
 7. The word must be true: Strip keyboard preserves 
    the first impression before friction destroys it
+
+---
+
+## DESIGN VISION V2
+
+### MANDALA CONTROL CENTER (NEW UI SYSTEM)
+Default state: only mandala visible (25% size, bottom right)
+Mandala tapped: UI blooms open from corner
+  - Bottom: MARK / FLEX / MY 100 action buttons
+  - Right: FLEX wall slides in
+  - Left: Vintage B letter → map navigation
+  - Top: Category strip slides down
+  - Top right: Profile FLEX photos rotating
+Hold mandala 3 seconds: everything retreats
+Icons pull from mandala rings on open (orbital physics)
+
+### FIVE MAP SYSTEM
+B navigation on left edge when UI open:
+  WORLD BEST — gold B — global ranking (current)
+  BEST MAP — silver B — Map 2 permanent coordinates
+  MY BEST — cream B — Personal Best 100
+  CREW BEST — bronze B — Group voting Best 100
+  CROWN — gold B with crown — competition map
+
+Map transitions: cinematic camera flight
+between worlds, DROP onto random video on arrival.
+
+### CROWN COMPETITION
+Performance challenge (dance, voice, visual, sport)
+Entry fee: $5-$25. Prize pool: 70% of fees.
+Official audio track (label pays $5K-$50K).
+Voting: weighted by Discovery Score.
+Winner: live stream announcement with DROP animation.
+Launch: Month 6 post-launch (September 2027).
+
+### CREATOR STUDIO
+6 layers of creator control over Map 2 cards:
+Card style, display title, font, peak moment,
+creator note (50 words to Personal Best adders),
+report style (DOCUMENTARY/PERFORMANCE/etc).
+Creator Studio Pro: $9.99/month.
+Founding creators get Pro free for Year 1.
+
+### PHYSICAL INSTALLATIONS (Year 3-4)
+8-meter monolith structures in 6 cities:
+New York, London, Dubai, Tokyo, Lagos, Paris.
+4 faces: WORLD BEST live / LOCAL BEST /
+MARK WALL real-time / MANDALA.
+ROI: 10x-25x Year 1. Transforms BEST
+from platform to institution.
+
+---
+
+## TASK REGISTRY
+
+T001 MonkeyCode  Gap Analysis Report     PENDING
+T002 Claude Code Focus mode + reg gate   COMPLETE
+T003 Claude Code MandalaButton           COMPLETE
+T004 Claude Code ColorOnboarding         COMPLETE
+T005 Claude Code FLEX wall               COMPLETE
+T006 Claude Code Creators page           COMPLETE
+T007 Claude Code Focus mode cinematic    COMPLETE
+T008 Claude Code YouTube circular btn    COMPLETE
+T009 MonkeyCode  FLEX camera panel       COMPLETE
+T010 Claude Code Vintage button redesign COMPLETE
+T011 MonkeyCode  Personal Best 100       COMPLETE
+T012 MonkeyCode  Swipe navigation fix    COMPLETE
+T013 Claude Code Whisper system          PENDING
+T014 Claude Code AI poetic descriptions  PENDING
+T015 MonkeyCode  Mandala Control Center  PENDING
+T016 MonkeyCode  Five Map System         PENDING
+T017 Claude Code Cinematic transitions   PENDING
+
+Phase 1 progress: 93%
+
+---
+
+## TOOL STACK
+
+This conversation: strategy + piloting
+Claude Code: surgical fixes (T002-T008)
+MonkeyCode Pro: heavy builds (T009-T012)
+OpenCode: backup when Claude Code limit hit
+Claude Desktop + Figma MCP: design to code
+Rive: motion design
 
 ---
 
