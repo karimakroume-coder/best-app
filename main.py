@@ -137,9 +137,18 @@ def get_global_ranking():
         score = compute_score(video, countries_present=["US"])
         scored.append({**video, **score})
     scored.sort(key=lambda x: x["total_score"], reverse=True)
+    client = get_client()
     results = []
     for rank, video in enumerate(scored, 1):
-        results.append({"rank": rank, "video_id": video["video_id"], "title": video["title"], "channel_name": video["channel_name"], "view_count": video["view_count"], "total_score": video["total_score"], "velocity_score": video["velocity_score"], "retention_score": video["retention_score"], "thumbnail_url": video["thumbnail_url"]})
+        ff = client.table("fireflags").select("id", count="exact") \
+            .eq("video_id", video["video_id"]).eq("is_active", True).execute()
+        results.append({
+            "rank": rank, "video_id": video["video_id"], "title": video["title"],
+            "channel_name": video["channel_name"], "view_count": video["view_count"],
+            "total_score": video["total_score"], "velocity_score": video["velocity_score"],
+            "retention_score": video["retention_score"], "thumbnail_url": video["thumbnail_url"],
+            "fireflag_count": ff.count or 0,
+        })
     return results
 
 @app.get("/ranking/category/{category_name}")
@@ -179,6 +188,66 @@ def get_creators_ranking():
              "total_score": v["total_score"],
              "peak_moment_seconds": peak_map.get(v["video_id"],0)}
             for r,v in enumerate(scored)]
+
+@app.get("/ranking/rising")
+def get_rising_videos():
+    client = get_client()
+    today = datetime.now(timezone.utc).date().isoformat()
+    yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).date().isoformat()
+
+    today_snaps = client.table("ranking_snapshots").select("video_id, rank, total_score") \
+        .eq("snapshot_date", today).order("rank", desc=False).execute()
+    yesterday_snaps = client.table("ranking_snapshots").select("video_id, rank") \
+        .eq("snapshot_date", yesterday).order("rank", desc=False).execute()
+
+    if not today_snaps.data or not yesterday_snaps.data:
+        return []
+
+    yesterday_map = {r["video_id"]: r["rank"] for r in yesterday_snaps.data}
+    rising = []
+    for row in today_snaps.data:
+        vid = row["video_id"]
+        today_rank = row["rank"]
+        prev_rank = yesterday_map.get(vid)
+        if prev_rank is None:
+            continue
+        rank_change = prev_rank - today_rank
+        if rank_change <= 0:
+            continue
+        rising_score = rank_change / max(prev_rank, 1)
+        rising.append({
+            "video_id": vid,
+            "current_rank": today_rank,
+            "previous_rank": prev_rank,
+            "rank_change": rank_change,
+            "rising_score": round(rising_score, 4),
+            "total_score": row.get("total_score", 0),
+        })
+
+    rising.sort(key=lambda x: x["rank_change"], reverse=True)
+    top = rising[:20]
+
+    if not top:
+        return []
+
+    videos = fetch_trending("10", "US")
+    video_info = {v["video_id"]: v for v in videos}
+
+    results = []
+    for r in top:
+        v = video_info.get(r["video_id"], {})
+        results.append({
+            "video_id": r["video_id"],
+            "title": v.get("title", ""),
+            "channel_name": v.get("channel_name", ""),
+            "thumbnail_url": v.get("thumbnail_url", ""),
+            "current_rank": r["current_rank"],
+            "previous_rank": r["previous_rank"],
+            "rank_change": r["rank_change"],
+            "rising_score": r["rising_score"],
+            "total_score": r["total_score"],
+        })
+    return results
 
 @app.get("/ranking/history/{video_id}")
 def get_video_history(video_id: str):

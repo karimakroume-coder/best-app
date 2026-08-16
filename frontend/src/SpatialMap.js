@@ -10,6 +10,7 @@ import FireflagIcon from './FireflagIcon';
 import HuntGame from './HuntGame';
 import { ReactComponent as FlexCamera } from './assets/icons/flex-camera.svg';
 import MandalaButton from './MandalaButton';
+import MandalaFrameRings from './MandalaFrameRings';
 
 const RANK_STYLES = {
   1:  { color: '#C9A84C', fontSize: '72px', fontWeight: 'bold' },
@@ -171,20 +172,6 @@ const dotCircleStyle = {
   border: '1px solid #C8A951', backgroundColor: 'transparent',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer',
-};
-
-// ── DOT ACTION PANEL — 52px gold-bordered circles for bottom actions ──────
-const actionCircleStyle = {
-  width: '52px', height: '52px', borderRadius: '50%',
-  border: '1.5px solid #C8A951', backgroundColor: 'transparent',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', flexShrink: 0,
-};
-const actionButtonStyle = {
-  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
-  minWidth: '56px', minHeight: '56px', padding: '8px 4px',
-  fontFamily: 'Bebas Neue, sans-serif', fontSize: '9px', letterSpacing: '1.5px',
-  color: '#C8A951', cursor: 'pointer', background: 'transparent', border: 'none',
 };
 
 const microNavStyle = {
@@ -349,6 +336,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [transitioning, setTransitioning] = useState(false);
   const [transitionPhase, setTransitionPhase] = useState('');
   const [fireflagRemaining, setFireflagRemaining] = useState(null);
+  const [risingVideos, setRisingVideos] = useState([]);
 
   const MAP_LABELS = {
     'world-best': 'WORLD BEST',
@@ -544,6 +532,15 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       .catch(() => {});
     return () => { cancelled = true; };
   }, [userId]);
+
+  // ── RISING FAST VIDEOS ──────────────────────────────────────────────────
+  useEffect(() => {
+    let cancelled = false;
+    axios.get('https://web-production-a267.up.railway.app/ranking/rising')
+      .then(res => { if (!cancelled) setRisingVideos(res.data || []); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   // ── DOT FADE TIMER ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -1440,6 +1437,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                       <FireflagIcon size={12} />
                     </div>
                   )}
+                  {risingVideos.some(r => r.video_id === v?.video_id) && (
+                    <div style={{ position:'absolute', top:'2px', right:'2px',
+                                  fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+                                  fontSize:'12px', lineHeight:1, textShadow:'0 0 4px rgba(0,0,0,0.8)' }}>
+                      ↗
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -1560,6 +1564,17 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                               animation:`fadeInLeft 0.35s ease-out ${i * 0.08}s both` }} />
               )
             ))}
+
+            {/* WATCH — moved here from the old vertical action stack now that
+                MARK/MY 100/FLEX live in the frame-ring openings below */}
+            <div onClick={(e) => { e.stopPropagation();
+                   window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
+                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
+                   window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
+                 title="Watch on YouTube"
+                 style={microNavStyle}>
+              <span style={{ color:'#C8A951', fontSize:'12px', lineHeight:1 }}>▶</span>
+            </div>
 
             <div onClick={(e) => { e.stopPropagation(); if (onToggleHunt) onToggleHunt(); }}
                  onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); if (onToggleHunt) onToggleHunt(); }}
@@ -1717,6 +1732,31 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                         opacity: focusMode ? 0.4 : 1 }}>
             {currentVideo.channel_name}
           </div>
+
+          {/* RISING FAST + FIREFLAG COUNT */}
+          {(() => {
+            const isRising = risingVideos.some(r => r.video_id === currentVideo.video_id);
+            const ffCount = currentVideo.fireflag_count || 0;
+            if (!isRising && ffCount === 0) return null;
+            return (
+              <div style={{ textAlign:'center', marginTop:'6px',
+                            transition:'opacity 0.5s ease', opacity: focusMode ? 0.3 : 1 }}>
+                {isRising && (
+                  <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+                                fontSize:'11px', letterSpacing:'2px',
+                                animation:'risingPulse 2s ease-in-out infinite' }}>
+                    ↗ RISING FAST
+                  </div>
+                )}
+                {ffCount > 0 && (
+                  <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+                                fontSize:'10px', letterSpacing:'1px', marginTop:'2px' }}>
+                    🔥 {ffCount} {ffCount === 1 ? 'USER' : 'USERS'}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
 
           {/* COLOR DISTRIBUTION BAR — 4px, segments proportional to community mood */}
           {(() => {
@@ -1912,76 +1952,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             );
           })()}
 
-          {dotState === 'three' && (
-            <div style={{
-              backgroundColor:'rgba(13,8,0,0.9)', border:'1px solid #C8A951',
-              borderRadius:'8px', padding:'12px 8px',
-              display:'flex', flexDirection:'column', alignItems:'center', gap:'16px',
-              animation:'slideUp 0.25s ease-out' }}>
-
-              {/* MARK — opens the color wheel / Mark flow */}
-              <div
-                onClick={openColorWheel}
-                onTouchEnd={(e) => { e.preventDefault(); openColorWheel(e); }}
-                style={actionButtonStyle}>
-                <div style={{ ...actionCircleStyle, position:'relative' }}>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <circle cx="12" cy="10" r="6" stroke="#C8A951" strokeWidth="1.5" fill="none" />
-                    <circle cx="12" cy="10" r="2" fill="#C8A951" opacity="0.6" />
-                    <circle cx="7" cy="14" r="2.5" fill="#E74C3C" opacity="0.7" />
-                    <circle cx="17" cy="14" r="2" fill="#2980B9" opacity="0.7" />
-                    <circle cx="12" cy="18" r="1.5" fill="#27AE60" opacity="0.7" />
-                  </svg>
-                  {!isLoggedIn && <LockBadge />}
-                </div>
-                MARK
-              </div>
-
-              {/* WATCH */}
-              <div
-                onClick={(e) => { e.stopPropagation();
-                  window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
-                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
-                  window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
-                style={{ ...actionButtonStyle }}>
-                <div style={actionCircleStyle}>
-                  <span style={{ color:'#C8A951', fontSize:'18px', lineHeight:1 }}>▶</span>
-                </div>
-              </div>
-
-              {/* MY 100 — add to Personal Best 100 */}
-              <div
-                onClick={(e) => addToPersonalBest(e, currentVideo)}
-                onTouchEnd={(e) => { e.preventDefault(); addToPersonalBest(e, currentVideo); }}
-                style={{ ...actionButtonStyle,
-                         cursor: personalBestVideos[currentVideo.video_id] ? 'default' : 'pointer' }}>
-                <div style={{ ...actionCircleStyle, position:'relative' }}>
-                  <span style={{ color:'#C8A951', fontSize:'24px', fontWeight:'bold', lineHeight:1 }}>
-                    {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
-                  </span>
-                  {!isLoggedIn && <LockBadge />}
-                </div>
-                MY 100
-              </div>
-
-              {/* FLEX — opens the FLEX camera panel */}
-              <div
-                onClick={openFlexPanel}
-                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); openFlexPanel(e); }}
-                style={actionButtonStyle}>
-                <div style={{ ...actionCircleStyle, position:'relative' }}>
-                  <FlexCamera style={{ width:'22px', height:'22px' }} />
-                  {!isLoggedIn && <LockBadge />}
-                </div>
-                FLEX
-              </div>
-            </div>
-          )}
-
           {/* PERSONAL BEST — feedback (error / +50 flash) */}
           {dotState === 'three' && (personalBestError || personalBestPointsFlash) && (
-            <div style={{ position:'absolute', bottom:'256px', right:'0',
-                          display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
+            <div style={{ position:'fixed', bottom:'88px', left:'50%', transform:'translateX(-50%)',
+                          display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', zIndex:156 }}>
               {personalBestPointsFlash && (
                 <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',
                                letterSpacing:'1px', animation:'fadeIn 0.2s ease',
@@ -1991,7 +1965,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               )}
               {personalBestError && (
                 <span style={{ color:'#E74C3C', fontSize:'8px', letterSpacing:'1px',
-                               maxWidth:'140px', textAlign:'right' }}>
+                               maxWidth:'140px', textAlign:'center' }}>
                   {personalBestError.toUpperCase()}
                 </span>
               )}
@@ -2002,8 +1976,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               menu being open since the menu closes as soon as a photo is
               picked, before the upload (and this feedback) resolves. */}
           {(flexError || flexPointsFlash) && (
-            <div style={{ position:'absolute', bottom:'288px', right:'0',
-                          display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'4px' }}>
+            <div style={{ position:'fixed', bottom:'88px', left:'50%', transform:'translateX(-50%)',
+                          display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', zIndex:156 }}>
               {flexPointsFlash && (
                 <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',
                                letterSpacing:'1px', animation:'fadeIn 0.2s ease',
@@ -2013,7 +1987,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               )}
               {flexError && (
                 <span style={{ color:'#E74C3C', fontSize:'8px', letterSpacing:'1px',
-                               maxWidth:'140px', textAlign:'right' }}>
+                               maxWidth:'140px', textAlign:'center' }}>
                   {flexError.toUpperCase()}
                 </span>
               )}
@@ -2021,6 +1995,48 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           )}
         </div>
       )}
+
+      {/* MANDALA SCREEN-EDGE ANIMATION — gold rings travel the frame from the
+          bottom-right corner, then MARK/MY 100/FLEX open along the bottom
+          edge. WATCH lives in the top profile row now (see above). */}
+      <MandalaFrameRings
+        open={uiOpen}
+        openings={[
+          {
+            position: 'bottom-left',
+            locked: !isLoggedIn,
+            onClick: openColorWheel,
+            onTouchEnd: (e) => { e.preventDefault(); openColorWheel(e); },
+            icon: (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="10" r="6" stroke="#C8A951" strokeWidth="1.5" fill="none" />
+                <circle cx="12" cy="10" r="2" fill="#C8A951" opacity="0.6" />
+                <circle cx="7" cy="14" r="2.5" fill="#E74C3C" opacity="0.7" />
+                <circle cx="17" cy="14" r="2" fill="#2980B9" opacity="0.7" />
+                <circle cx="12" cy="18" r="1.5" fill="#27AE60" opacity="0.7" />
+              </svg>
+            ),
+          },
+          {
+            position: 'bottom-center',
+            locked: !isLoggedIn,
+            onClick: (e) => addToPersonalBest(e, currentVideo),
+            onTouchEnd: (e) => { e.preventDefault(); addToPersonalBest(e, currentVideo); },
+            icon: (
+              <span style={{ color:'#C8A951', fontSize:'24px', fontWeight:'bold', lineHeight:1 }}>
+                {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
+              </span>
+            ),
+          },
+          {
+            position: 'bottom-right',
+            locked: !isLoggedIn,
+            onClick: openFlexPanel,
+            onTouchEnd: (e) => { e.stopPropagation(); e.preventDefault(); openFlexPanel(e); },
+            icon: <FlexCamera style={{ width:'22px', height:'22px' }} />,
+          },
+        ]}
+      />
 
       {/* COLOR WHEEL OVERLAY */}
       {showColorWheel && (
@@ -2375,6 +2391,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         @keyframes pulse {
           0%,100% { text-shadow: 0 0 40px #C9A84C; }
           50%      { text-shadow: 0 0 80px #C9A84C, 0 0 120px #C9A84C; }
+        }
+        @keyframes risingPulse {
+          0%,100% { opacity: 1; }
+          50%      { opacity: 0.5; }
         }
         @keyframes fadeIn {
           from { opacity:0; transform:scale(0.5); }

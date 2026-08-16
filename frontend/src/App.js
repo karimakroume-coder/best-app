@@ -65,24 +65,37 @@ function Rankings() {
   useEffect(() => {
     setLoading(true);
     const base = 'https://web-production-a267.up.railway.app';
-    const url = selectedCategory === 'global' || selectedCategory === 'trending'
+    if (selectedCategory === 'trending') {
+      axios.get(`${base}/ranking/rising`)
+        .then(res => {
+          const data = (res.data || []).map((v, i) => ({ ...v, rank: i + 1 }));
+          setRankings(data);
+          setLoading(false);
+        })
+        .catch(() => {
+          // Fallback to global sorted by velocity if rising endpoint unavailable
+          axios.get(`${base}/ranking/global`)
+            .then(res => {
+              const data = [...res.data]
+                .sort((a, b) => (b.velocity_score ?? 0) - (a.velocity_score ?? 0))
+                .map((v, i) => ({ ...v, rank: i + 1 }));
+              setRankings(data);
+              setLoading(false);
+            })
+            .catch(err => { setLoading(false); });
+        });
+      return;
+    }
+    const url = selectedCategory === 'global'
       ? `${base}/ranking/global`
       : selectedCategory === 'morocco'
       ? `${base}/ranking/country/MA`
       : `${base}/ranking/category/${selectedCategory}`;
     axios.get(url)
       .then(res => {
-        let data = res.data;
-        if (selectedCategory === 'trending') {
-          // Same global pool, re-ranked by velocity (views/hour) instead of
-          // the composite BEST score, to surface what's rising fastest.
-          data = [...data]
-            .sort((a, b) => (b.velocity_score ?? 0) - (a.velocity_score ?? 0))
-            .map((v, i) => ({ ...v, rank: i + 1 }));
-        }
-        setRankings(data);
+        setRankings(res.data);
         setLoading(false);
-        console.log('Rankings received:', data.length, data[0]?.title);
+        console.log('Rankings received:', res.data.length, res.data[0]?.title);
       })
       .catch(err => {
         setLoading(false);
