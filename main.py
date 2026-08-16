@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Header, HTTPException
+from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
@@ -23,6 +24,16 @@ scheduler.add_job(
 )
 scheduler.start()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    return JSONResponse(status_code=exc.status_code, content={"error": True, "message": exc.detail})
+
+
+@app.exception_handler(Exception)
+async def generic_exception_handler(request: Request, exc: Exception):
+    return JSONResponse(status_code=500, content={"error": True, "message": "Internal server error"})
 
 CATEGORY_IDS = {"music":"10","gaming":"20","sports":"17","entertainment":"24","people":"22"}
 
@@ -75,7 +86,7 @@ def health():
             "agents_running": 0,
         }
     except Exception as e:
-        return {"status": "degraded", "error": str(e)}
+        return {"status": "degraded", "error": "Service temporarily unavailable"}
 
 @app.post("/auth/register")
 def register(req: AuthRequest):
@@ -99,7 +110,9 @@ def register(req: AuthRequest):
         error_str = str(e).lower()
         if "already" in error_str or "exists" in error_str or "duplicate" in error_str:
             return login(AuthRequest(email=req.email, password=req.password))
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail="Registration failed")
+    except HTTPException:
+        raise
 
 @app.post("/auth/login")
 def login(req: AuthRequest):
@@ -127,7 +140,7 @@ def get_profile(authorization: str = Header(None)):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to load profile")
 
 @app.get("/ranking/global")
 def get_global_ranking():
@@ -274,7 +287,7 @@ def join_early_access(payload: dict):
     except Exception as e:
         if "duplicate" in str(e).lower() or "unique" in str(e).lower():
             raise HTTPException(status_code=409, detail="Email already on the list")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to save email")
     total = client.table("early_access").select("id", count="exact").execute()
     total_count = total.count or 0
     return {"success": True, "total": total_count}
@@ -649,7 +662,7 @@ def notify_launch(payload: dict):
     except Exception as e:
         if "duplicate" in str(e).lower() or "unique" in str(e).lower():
             return {"success": True, "message": "Already on the list"}
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="Failed to save notification")
     return {"success": True}
 
 
@@ -677,7 +690,66 @@ def get_stats():
             "last_snapshot_date": last_snapshot,
         }
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": "Stats temporarily unavailable"}
+
+
+# ── APP CONFIG (React Native) ────────────────────────────────────────────
+
+@app.get("/app/config")
+def get_app_config():
+    return {
+        "app_version": "1.0.0",
+        "min_supported_version": "1.0.0",
+        "feature_flags": {
+            "spatial_map": True,
+            "color_mark": True,
+            "fireflag": True,
+            "hunt_game": True,
+            "personal_best": True,
+            "flex_camera": True,
+            "dark_mode": True,
+            "mandala_ui": True,
+            "five_maps": True,
+            "creator_studio": False,
+            "crown_competition": False,
+            "crew_best": False,
+            "whisper_system": False,
+            "ai_descriptions": True,
+            "rising_fast": True,
+            "score_preview": True,
+        },
+        "maintenance_mode": False,
+        "force_update": False,
+        "store_urls": {
+            "ios": "",
+            "android": "",
+        },
+    }
+
+
+# ── MOBILE AUTH TOKEN ───────────────────────────────────────────────────
+
+@app.post("/auth/mobile-token")
+def mobile_token(payload: dict):
+    """Exchange a Supabase access_token (from Expo/React Native) for a BEST JWT.
+
+    The Expo app calls Supabase Auth directly to sign in / sign up, then
+    posts the resulting session.access_token here.  We verify it against
+    Supabase and return a short-lived BEST JWT that can be used with all
+    existing /user/* and /personal-best/* endpoints.
+    """
+    supabase_token = payload.get("access_token", "").strip()
+    if not supabase_token:
+        raise HTTPException(status_code=400, detail="access_token is required")
+    client = get_client()
+    try:
+        user = client.auth.get_user(supabase_token)
+        user_id = user.user.id
+        email = user.user.email or ""
+        token = create_access_token({"sub": user_id, "email": email})
+        return {"access_token": token, "user_id": user_id}
+    except Exception:
+        raise HTTPException(status_code=401, detail="Invalid or expired Supabase token")
 
 
 # ── FIREFLAG EXPIRY ────────────────────────────────────────────────────────
