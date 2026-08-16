@@ -260,14 +260,24 @@ def join_early_access(payload: dict):
     email = payload.get("email", "").strip().lower()
     if not email or "@" not in email:
         raise HTTPException(status_code=400, detail="A valid email is required")
+    source = payload.get("source", "direct")
+    referrer = payload.get("referrer")
+    creator_interest = payload.get("creator_interest", False)
     client = get_client()
     try:
-        client.table("early_access").insert({"email": email}).execute()
+        client.table("early_access").insert({
+            "email": email,
+            "source": source,
+            "referrer": referrer,
+            "creator_interest": creator_interest,
+        }).execute()
     except Exception as e:
         if "duplicate" in str(e).lower() or "unique" in str(e).lower():
             raise HTTPException(status_code=409, detail="Email already on the list")
         raise HTTPException(status_code=500, detail=str(e))
-    return {"message": "You are on the list"}
+    total = client.table("early_access").select("id", count="exact").execute()
+    total_count = total.count or 0
+    return {"success": True, "total": total_count}
 
 @app.post("/color/assign")
 def assign_color(payload: dict):
@@ -548,6 +558,126 @@ def get_discovery_score(user_id: str):
         progress = round((score / next_milestone[0]) * 100)
         return {"score": score, "next_milestone": next_milestone[0], "milestone_label": next_milestone[1], "progress_pct": progress}
     return {"score": score, "next_milestone": 1000, "milestone_label": "ORACLE", "progress_pct": 100}
+
+
+# ── FOUNDING CREATOR APPLICATION ──────────────────────────────────────────
+
+@app.post("/creator/apply")
+def apply_creator(payload: dict):
+    name = payload.get("name", "").strip()
+    email = payload.get("email", "").strip().lower()
+    youtube_url = payload.get("youtube_url", "").strip()
+    subscriber_count = payload.get("subscriber_count")
+    primary_category = payload.get("primary_category", "")
+    why_best = payload.get("why_best", "")[:200]
+    if not name or not email:
+        raise HTTPException(status_code=400, detail="name and email are required")
+    client = get_client()
+    result = client.table("creator_applications").insert({
+        "name": name,
+        "email": email,
+        "youtube_url": youtube_url,
+        "subscriber_count": subscriber_count,
+        "primary_category": primary_category,
+        "why_best": why_best,
+        "status": "pending",
+    }).execute()
+    application_id = result.data[0]["id"] if result.data else None
+    return {"success": True, "application_id": application_id}
+
+
+# ── BEST SCORE PREVIEW ───────────────────────────────────────────────────
+
+@app.get("/creator/score-preview")
+def score_preview(youtube_url: str = ""):
+    if not youtube_url:
+        raise HTTPException(status_code=400, detail="youtube_url is required")
+    client = get_client()
+    # Try to extract channel name from URL
+    channel_name = ""
+    if "channel/" in youtube_url:
+        channel_name = youtube_url.split("channel/")[-1].split("/")[0].split("?")[0]
+    elif "user/" in youtube_url:
+        channel_name = youtube_url.split("user/")[-1].split("/")[0].split("?")[0]
+    elif "@" in youtube_url:
+        channel_name = youtube_url.split("@")[-1].split("/")[0].split("?")[0]
+    if not channel_name:
+        return {"channel_found": False, "best_score": 0, "rank": None,
+                "videos_ranked": 0, "message": "Could not parse channel from URL"}
+    # Check rankings for this channel
+    ranked = client.table("rankings").select("video_id, rank, score") \
+        .order("rank", desc=False).limit(500).execute()
+    video_ids = [r["video_id"] for r in (ranked.data or [])]
+    if not video_ids:
+        return {"channel_found": False, "best_score": 0, "rank": None,
+                "videos_ranked": 0, "message": "No rankings available yet"}
+    videos = client.table("videos").select("video_id, title, channel_name") \
+        .in_("video_id", video_ids).execute()
+    channel_videos = [v for v in (videos.data or [])
+                      if channel_name.lower() in (v.get("channel_name") or "").lower()]
+    if not channel_videos:
+        return {"channel_found": False, "best_score": 0, "rank": None,
+                "videos_ranked": 0, "message": "Channel not yet ranked on BEST"}
+    vid_set = {v["video_id"] for v in channel_videos}
+    rank_map = {r["video_id"]: r for r in (ranked.data or []) if r["video_id"] in vid_set}
+    best_score = max((r.get("score", 0) or 0 for r in rank_map.values()), default=0)
+    best_rank = min((r.get("rank", 999) or 999 for r in rank_map.values()), default=None)
+    total_ranked = len(ranked.data or [])
+    pct = round((best_rank / total_ranked) * 100) if best_rank and total_ranked else 100
+    return {
+        "channel_found": True,
+        "best_score": round(best_score, 4),
+        "rank": best_rank,
+        "videos_ranked": len(channel_videos),
+        "message": f"Your content ranks in the top {pct}% on BEST",
+    }
+
+
+# ── LAUNCH NOTIFY ────────────────────────────────────────────────────────
+
+@app.post("/notify/launch")
+def notify_launch(payload: dict):
+    email = payload.get("email", "").strip().lower()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="A valid email is required")
+    client = get_client()
+    try:
+        client.table("early_access").insert({
+            "email": email,
+            "source": "launch-notify",
+        }).execute()
+    except Exception as e:
+        if "duplicate" in str(e).lower() or "unique" in str(e).lower():
+            return {"success": True, "message": "Already on the list"}
+        raise HTTPException(status_code=500, detail=str(e))
+    return {"success": True}
+
+
+# ── PLATFORM STATS ───────────────────────────────────────────────────────
+
+@app.get("/stats")
+def get_stats():
+    client = get_client()
+    try:
+        videos_count = len(client.table("videos").select("video_id", count="exact").execute().data or [])
+        users_count = len(client.table("users").select("user_id", count="exact").execute().data or [])
+        colors_count = len(client.table("color_assignments").select("id", count="exact").execute().data or [])
+        fireflags_count = len(client.table("fireflags").select("id", count="exact").execute().data or [])
+        early_count = len(client.table("early_access").select("id", count="exact").execute().data or [])
+        apps_count = len(client.table("creator_applications").select("id", count="exact").execute().data or [])
+        snapshots = client.table("ranking_snapshots").select("snapshot_date").order("snapshot_date", desc=True).limit(1).execute()
+        last_snapshot = snapshots.data[0]["snapshot_date"] if snapshots.data else None
+        return {
+            "videos_ranked": videos_count,
+            "total_users": users_count,
+            "total_marks": colors_count,
+            "total_fireflags": fireflags_count,
+            "early_access_signups": early_count,
+            "creator_applications": apps_count,
+            "last_snapshot_date": last_snapshot,
+        }
+    except Exception as e:
+        return {"error": str(e)}
 
 
 # ── FIREFLAG EXPIRY ────────────────────────────────────────────────────────

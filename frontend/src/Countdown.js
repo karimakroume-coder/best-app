@@ -44,6 +44,7 @@ function Countdown() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [position, setPosition] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -60,7 +61,8 @@ function Countdown() {
     setError('');
     setSubmitting(true);
     try {
-      await axios.post(`${API_BASE}/early-access`, { email });
+      const res = await axios.post(`${API_BASE}/early-access`, { email, source: 'launch-page' });
+      setPosition(res.data.total || null);
       setSubmitted(true);
     } catch (err) {
       if (err.response?.status === 409) {
@@ -117,7 +119,7 @@ function Countdown() {
                       marginTop: '16px', width: '100%', maxWidth: '360px' }}>
           {submitted ? (
             <p style={{ color: '#C9A84C', fontSize: '13px', letterSpacing: '2px' }}>
-              YOU ARE ON THE LIST
+              {position ? `YOU ARE #${position} ON THE LIST` : 'YOU ARE ON THE LIST'}
             </p>
           ) : (
             <>
