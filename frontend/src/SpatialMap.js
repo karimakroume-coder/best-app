@@ -206,6 +206,71 @@ function LockBadge() {
   );
 }
 
+// ── WHISPER SYSTEM (Map 2 empty coordinates) ───────────────────────────────
+// Empty cards on the permanent grid breathe and whisper in the visitor's
+// language, coaxing a creator to claim the spot. Visits are counted per
+// coordinate in localStorage; after 5 visits the whisper goes silent and a
+// gold "claimable" dot takes its place.
+const WHISPERS = {
+  ar: ["أعطها", "هذا المكان ينتظرك"],
+  pt: ["alimente isso", "este lugar é seu"],
+  ko: ["채워줘", "여기 무언가 살아야 해"],
+  fr: ["nourris-le", "cet endroit t'attend"],
+  default: ["feed it", "this place is waiting", "something should live here"],
+};
+
+function getWhisperPhrases() {
+  const lang = (navigator.language || 'en').slice(0, 2);
+  return WHISPERS[lang] || WHISPERS.default;
+}
+
+const WHISPER_VISIT_LIMIT = 5;
+
+function WhisperCard({ coordKey }) {
+  const [visits, setVisits] = useState(0);
+  const [showWhisper, setShowWhisper] = useState(false);
+  const phraseRef = useRef(null);
+  if (phraseRef.current === null) {
+    const phrases = getWhisperPhrases();
+    phraseRef.current = phrases[Math.floor(Math.random() * phrases.length)];
+  }
+
+  useEffect(() => {
+    const key = `best_whisper_visits_${coordKey}`;
+    const prev = parseInt(localStorage.getItem(key) || '0', 10);
+    const next = prev + 1;
+    localStorage.setItem(key, String(next));
+    setVisits(next);
+    setShowWhisper(false);
+  }, [coordKey]);
+
+  useEffect(() => {
+    if (visits >= WHISPER_VISIT_LIMIT) return;
+    const t = setTimeout(() => setShowWhisper(true), 2000);
+    return () => clearTimeout(t);
+  }, [visits]);
+
+  const silent = visits >= WHISPER_VISIT_LIMIT;
+
+  return (
+    <div style={{ position:'relative', width:'100%', height:'100%',
+                  backgroundColor:'#000000', display:'flex',
+                  alignItems:'center', justifyContent:'center',
+                  animation: silent ? 'none' : 'cardBreathe 4s ease-in-out infinite' }}>
+      {silent ? (
+        <div style={{ width:'8px', height:'8px', borderRadius:'50%',
+                      backgroundColor:'#C9A84C', boxShadow:'0 0 12px #C9A84C' }} />
+      ) : showWhisper ? (
+        <div style={{ color:'#3A3A3A', fontSize:'10px', letterSpacing:'1px',
+                      textAlign:'center', padding:'0 8px',
+                      animation:'whisperFadeIn 1.5s ease' }}>
+          {phraseRef.current}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, onBeforeColor, darkMode, huntActive, onHuntComplete, onHuntStop }) {
   console.log('SpatialMap rankings prop:', rankings?.length);
 
@@ -1001,43 +1066,49 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </button>
         {cells.map(({ dx, dy }) => {
           const isCenter = dx === 0 && dy === 0;
-          const rank = coordToRank[`${currentX + dx},${currentY + dy}`];
+          const cellX = currentX + dx, cellY = currentY + dy;
+          const rank = coordToRank[`${cellX},${cellY}`];
           const v = rank ? rankings[rank - 1] : null;
+          const isEmpty = !v || !v.video_id;
           const flagged = v && !!fireflaggedVideos[v.video_id];
-          if (darkMode && v && !flagged) {
+          if (darkMode && v && !flagged && !isEmpty) {
             return (
               <div key={`${dx},${dy}`}
-                   onClick={() => navigateToCoord(currentX + dx, currentY + dy)}
+                   onClick={() => navigateToCoord(cellX, cellY)}
                    style={{ position:'relative', cursor:'pointer', backgroundColor:'#000000',
                             border: isCenter ? '2px solid #111' : 'none' }} />
             );
           }
           return (
             <div key={`${dx},${dy}`}
-                 onClick={() => { if (v) navigateToCoord(currentX + dx, currentY + dy); }}
-                 style={{ position:'relative', overflow:'hidden', cursor: v ? 'pointer' : 'default',
+                 onClick={() => { if (!isEmpty) navigateToCoord(cellX, cellY); }}
+                 style={{ position:'relative', overflow:'hidden', cursor: !isEmpty ? 'pointer' : 'default',
                           backgroundColor: darkMode ? '#000000' : '#111',
                           border: isCenter ? '2px solid #C9A84C' : '1px solid #222',
                           boxShadow: darkMode && flagged ? '0 0 20px rgba(243,156,18,0.4)' : 'none',
                           transform: isCenter ? 'scale(1.04)' : 'scale(1)',
                           transition:'transform 0.2s', zIndex: isCenter ? 2 : 1 }}>
-              {v?.thumbnail_url &&
-                <img src={v.thumbnail_url} alt=""
-                     style={{ width:'100%', height:'100%', objectFit:'cover',
-                              opacity: isCenter ? 0.85 : 0.4 }} />}
-              {v && (
-                <div style={{ position:'absolute', top:'50%', left:'50%',
-                              transform:'translate(-50%,-50%)',
-                              ...getRankStyle(v.rank),
-                              fontSize: isCenter ? '28px' : '14px',
-                              textShadow:'0 0 8px rgba(0,0,0,0.8)' }}>
-                  #{v.rank}
-                </div>
-              )}
-              {flagged && (
-                <div style={{ position:'absolute', bottom:'2px', right:'2px' }}>
-                  <FireflagIcon size={12} />
-                </div>
+              {isEmpty ? (
+                <WhisperCard coordKey={`${cellX},${cellY}`} />
+              ) : (
+                <>
+                  {v?.thumbnail_url &&
+                    <img src={v.thumbnail_url} alt=""
+                         style={{ width:'100%', height:'100%', objectFit:'cover',
+                                  opacity: isCenter ? 0.85 : 0.4 }} />}
+                  <div style={{ position:'absolute', top:'50%', left:'50%',
+                                transform:'translate(-50%,-50%)',
+                                ...getRankStyle(v.rank),
+                                fontSize: isCenter ? '28px' : '14px',
+                                textShadow:'0 0 8px rgba(0,0,0,0.8)' }}>
+                    #{v.rank}
+                  </div>
+                  {flagged && (
+                    <div style={{ position:'absolute', bottom:'2px', right:'2px' }}>
+                      <FireflagIcon size={12} />
+                    </div>
+                  )}
+                </>
               )}
             </div>
           );
@@ -1047,6 +1118,16 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                       fontSize:'10px', letterSpacing:'2px' }}>
           PINCH IN TO FOCUS · TAP CARD TO SELECT
         </div>
+        <style>{`
+          @keyframes cardBreathe {
+            0%,100% { filter: brightness(1); }
+            50%      { filter: brightness(1.35); }
+          }
+          @keyframes whisperFadeIn {
+            from { opacity:0; }
+            to   { opacity:1; }
+          }
+        `}</style>
       </div>
     );
   }
