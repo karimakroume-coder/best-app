@@ -191,6 +191,29 @@ Color must be one of: red, blue, green, yellow, black, white"""
             print(f"  {self.name} fireflag error: {e}")
             return False
 
+    def hunt_participate(self):
+        try:
+            res = requests.get(f"{BEST_API}/hunt/daily", timeout=10)
+            if res.status_code != 200:
+                return
+            target = res.json()
+            if random.random() > 0.30:
+                return
+            found = requests.post(f"{BEST_API}/hunt/found", json={
+                "user_id": self.user_id,
+                "video_id": target["video_id"],
+                "date": target["date"]
+            }, timeout=10)
+            if found.status_code == 200:
+                data = found.json()
+                pts = data.get("points", 0)
+                if pts > 0:
+                    print(f"  🎯 {self.name} found hunt target! +{pts}")
+                else:
+                    print(f"  🎯 {self.name} already found hunt today")
+        except Exception as e:
+            print(f"  {self.name} hunt error: {e}")
+
     def run_session(self):
         print(f"\n[{datetime.now().strftime('%H:%M:%S')}] "
               f"{self.name} ({self.profile['region']}) starting session...")
@@ -204,6 +227,9 @@ Color must be one of: red, blue, green, yellow, black, white"""
         if not self.user_id:
             print(f"  {self.name} has no user_id after auth. Skipping.")
             return
+
+        # Hunt participation
+        self.hunt_participate()
 
         rankings = self.get_rankings()
         if not rankings:

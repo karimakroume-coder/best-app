@@ -341,6 +341,7 @@ T014 Claude Code AI poetic descriptions  PENDING
 T015 MonkeyCode  Mandala Control Center  PENDING
 T016 MonkeyCode  Five Map System         PENDING
 T017 Claude Code Cinematic transitions   PENDING
+T018 Claude Code Hunt backend + agents   COMPLETE
 
 Phase 1 progress: 93%
 

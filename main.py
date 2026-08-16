@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
-import base64, binascii, os, re, sys, uuid
+import base64, binascii, hashlib, os, re, sys, uuid
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from ranking.fetcher import fetch_trending
 from ranking.scorer import compute_score
@@ -327,6 +327,103 @@ def list_flexes(video_id: str):
     client = get_client()
     result = client.table("flex_comments").select("*").eq("video_id", video_id).order("placed_at", desc=True).limit(50).execute()
     return {"video_id": video_id, "count": len(result.data), "flexes": result.data}
+
+# ── HUNT GAME ───────────────────────────────────────────────────────────────
+
+@app.get("/hunt/daily")
+def get_hunt_daily():
+    today = datetime.now(timezone.utc).date().isoformat()
+    client = get_client()
+    rankings = client.table("rankings").select("video_id, rank, thumbnail_url").order("rank", desc=False).execute()
+    if not rankings.data:
+        raise HTTPException(status_code=404, detail="No rankings available")
+    seed = int(hashlib.md5(today.encode()).hexdigest(), 16)
+    target_index = seed % len(rankings.data)
+    target = rankings.data[target_index]
+    return {"video_id": target["video_id"], "rank": target["rank"], "thumbnail_url": target["thumbnail_url"], "date": today}
+
+
+@app.post("/hunt/found")
+def hunt_found(payload: dict):
+    user_id = payload.get("user_id")
+    video_id = payload.get("video_id")
+    date = payload.get("date")
+    if not user_id or not video_id or not date:
+        raise HTTPException(status_code=400, detail="user_id, video_id, and date are required")
+    client = get_client()
+    # Validate target
+    rankings = client.table("rankings").select("video_id, rank").order("rank", desc=False).execute()
+    seed = int(hashlib.md5(date.encode()).hexdigest(), 16)
+    target_index = seed % len(rankings.data)
+    target = rankings.data[target_index]
+    if target["video_id"] != video_id:
+        raise HTTPException(status_code=400, detail="That is not today's hunt target")
+    # Check if already found
+    existing = client.table("hunt_completions").select("id").eq("user_id", user_id).eq("date", date).execute()
+    if existing.data:
+        return {"success": True, "points": 0, "message": "Already found today"}
+    # Record and award
+    client.table("hunt_completions").insert({"user_id": user_id, "video_id": video_id, "date": date}).execute()
+    user_data = client.table("users").select("discovery_score").eq("user_id", user_id).execute()
+    current_score = user_data.data[0]["discovery_score"] if user_data.data else 0
+    client.table("users").update({"discovery_score": current_score + 50}).eq("user_id", user_id).execute()
+    return {"success": True, "points": 50}
+
+
+@app.get("/hunt/leaderboard")
+def get_hunt_leaderboard():
+    today = datetime.now(timezone.utc).date().isoformat()
+    client = get_client()
+    results = client.table("hunt_completions").select("user_id, found_at").eq("date", today).order("found_at", desc=False).limit(10).execute()
+    leaderboard = []
+    for i, row in enumerate(results.data):
+        leaderboard.append({"user_id": row["user_id"], "found_at": row["found_at"], "rank_in_list": i + 1})
+    return leaderboard
+
+
+# ── DISCOVERY SCORE ─────────────────────────────────────────────────────────
+
+MILESTONES = [
+    (100, "EXPLORER"),
+    (200, "SCOUT"),
+    (500, "GOLD UNLOCK"),
+    (750, "LEGEND"),
+    (1000, "ORACLE"),
+]
+
+
+@app.get("/user/discovery-score/{user_id}")
+def get_discovery_score(user_id: str):
+    client = get_client()
+    result = client.table("users").select("discovery_score").eq("user_id", user_id).execute()
+    if not result.data:
+        raise HTTPException(status_code=404, detail="User not found")
+    score = result.data[0]["discovery_score"] or 0
+    next_milestone = None
+    for threshold, label in MILESTONES:
+        if score < threshold:
+            next_milestone = (threshold, label)
+            break
+    if next_milestone:
+        progress = round((score / next_milestone[0]) * 100)
+        return {"score": score, "next_milestone": next_milestone[0], "milestone_label": next_milestone[1], "progress_pct": progress}
+    return {"score": score, "next_milestone": 1000, "milestone_label": "ORACLE", "progress_pct": 100}
+
+
+# ── FIREFLAG EXPIRY ────────────────────────────────────────────────────────
+
+def expire_fireflags():
+    client = get_client()
+    rankings = client.table("rankings").select("video_id").order("rank", desc=False).execute()
+    top_200_ids = [r["video_id"] for r in (rankings.data or [])[:200]]
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    if top_200_ids:
+        client.table("fireflags").update({"is_active": False}).not_.in_("video_id", top_200_ids).execute()
+    client.table("fireflags").update({"is_active": False}).lt("placed_at", cutoff).execute()
+
+
+scheduler.add_job(expire_fireflags, "interval", hours=1)
+
 
 if __name__ == "__main__":
     import uvicorn
