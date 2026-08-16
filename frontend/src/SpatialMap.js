@@ -173,7 +173,13 @@ const dotCircleStyle = {
   cursor: 'pointer',
 };
 
-// ── MANDALA CONTROL CENTER — labeled bottom actions + small utility icons ──
+// ── DOT ACTION PANEL — 52px gold-bordered circles for bottom actions ──────
+const actionCircleStyle = {
+  width: '52px', height: '52px', borderRadius: '50%',
+  border: '1.5px solid #C8A951', backgroundColor: 'transparent',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer', flexShrink: 0,
+};
 const actionButtonStyle = {
   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
   minWidth: '56px', minHeight: '56px', padding: '8px 4px',
@@ -371,6 +377,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const flexVideoRef = useRef(null);
   const flexCanvasRef = useRef(null);
   const flexStreamRef = useRef(null);
+  const categoryPillRefs = useRef({});
 
   // ── ACTIVE RANKINGS — depends on which map is selected ─────────────────
   const activeRankings = currentMap === 'my-best' ? pbRankings : rankings;
@@ -472,11 +479,6 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   // get right but calling it from inside a *functional updater* (as an
   // earlier version of toggleUI did) isn't — React flags that as updating
   // a different component while rendering.
-  const openUI = useCallback(() => {
-    setUiOpen(true);
-    setDotState('three');
-  }, []);
-
   const closeUI = useCallback(() => {
     setUiOpen(false);
     setDotState('single');
@@ -498,6 +500,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   // Mandala Control Center is bloomed open, so it doesn't compete with the
   // category strip / action row / profile row.
   const chromeHidden = uiOpen;
+
+  // Auto-scroll category strip so active pill is centered when UI opens or category changes
+  useEffect(() => {
+    if (!uiOpen) return;
+    const el = categoryPillRefs.current[selectedCategory];
+    if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [uiOpen, selectedCategory]);
 
   // ── PERSONAL BEST DATA — fetch when my-best map is active ─────────────
   useEffect(() => {
@@ -1521,6 +1530,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                         msOverflowStyle:'none', maxWidth:'58vw' }}>
             {categories.map(cat => (
               <button key={cat.value}
+                ref={el => { categoryPillRefs.current[cat.value] = el; }}
                 onClick={(e) => { e.stopPropagation(); if (onSelectCategory) onSelectCategory(cat.value); }}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
                   if (onSelectCategory) onSelectCategory(cat.value); }}
@@ -1880,7 +1890,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       {dotState !== 'hidden' && !showColorWheel && (
         <div style={{ position:'absolute', bottom:'120px', right:'24px', zIndex:10 }}>
 
-          <MandalaButton onClick={toggleUI} onHold={closeUI} />
+          <MandalaButton onClick={toggleUI} onHold={closeUI} isOpen={uiOpen} />
 
           {dotState === 'single' && discoveryScore > 0 && (() => {
             const milestones = [[100,'EXPLORER'],[200,'SCOUT'],[500,'GOLD'],[750,'LEGEND'],[1000,'ORACLE']];
@@ -1914,8 +1924,14 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 onClick={openColorWheel}
                 onTouchEnd={(e) => { e.preventDefault(); openColorWheel(e); }}
                 style={actionButtonStyle}>
-                <div style={{ ...dotCircleStyle, position:'relative' }}>
-                  <span style={{ fontSize:'16px', lineHeight:1 }}>🎨</span>
+                <div style={{ ...actionCircleStyle, position:'relative' }}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="10" r="6" stroke="#C8A951" strokeWidth="1.5" fill="none" />
+                    <circle cx="12" cy="10" r="2" fill="#C8A951" opacity="0.6" />
+                    <circle cx="7" cy="14" r="2.5" fill="#E74C3C" opacity="0.7" />
+                    <circle cx="17" cy="14" r="2" fill="#2980B9" opacity="0.7" />
+                    <circle cx="12" cy="18" r="1.5" fill="#27AE60" opacity="0.7" />
+                  </svg>
                   {!isLoggedIn && <LockBadge />}
                 </div>
                 MARK
@@ -1927,8 +1943,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                   window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
                   window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
-                style={dotCircleStyle}>
-                <span style={{ color:'#C8A951', fontSize:'16px', lineHeight:1 }}>▶</span>
+                style={{ ...actionButtonStyle }}>
+                <div style={actionCircleStyle}>
+                  <span style={{ color:'#C8A951', fontSize:'18px', lineHeight:1 }}>▶</span>
+                </div>
               </div>
 
               {/* MY 100 — add to Personal Best 100 */}
@@ -1937,8 +1955,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 onTouchEnd={(e) => { e.preventDefault(); addToPersonalBest(e, currentVideo); }}
                 style={{ ...actionButtonStyle,
                          cursor: personalBestVideos[currentVideo.video_id] ? 'default' : 'pointer' }}>
-                <div style={{ ...dotCircleStyle, position:'relative' }}>
-                  <span style={{ color:'#C8A951', fontSize:'16px', fontWeight:'bold', lineHeight:1 }}>
+                <div style={{ ...actionCircleStyle, position:'relative' }}>
+                  <span style={{ color:'#C8A951', fontSize:'24px', fontWeight:'bold', lineHeight:1 }}>
                     {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
                   </span>
                   {!isLoggedIn && <LockBadge />}
@@ -1951,8 +1969,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 onClick={openFlexPanel}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); openFlexPanel(e); }}
                 style={actionButtonStyle}>
-                <div style={{ ...dotCircleStyle, position:'relative' }}>
-                  <FlexCamera style={{ width:'16px', height:'16px' }} />
+                <div style={{ ...actionCircleStyle, position:'relative' }}>
+                  <FlexCamera style={{ width:'22px', height:'22px' }} />
                   {!isLoggedIn && <LockBadge />}
                 </div>
                 FLEX

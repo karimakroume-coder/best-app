@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 const RINGS = [
   { count: 8,  radius: 25, size: 3,   duration: '8s',  direction: 'normal' },
@@ -21,16 +21,50 @@ function ringCircles(ring) {
   return points;
 }
 
-function MandalaButton({ onClick, size = 44 }) {
+// Holding the mandala for `holdDuration` fires onHold ("everything
+// retreats") instead of onClick — held.current suppresses the tap that
+// would otherwise fire when the hold gesture releases.
+function MandalaButton({ onClick, onHold, holdDuration = 3000, size = 44, isOpen = false }) {
+  const holdTimer = useRef(null);
+  const held = useRef(false);
+
+  const clearHold = () => {
+    if (holdTimer.current) {
+      clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+  };
+
+  const startHold = () => {
+    held.current = false;
+    clearHold();
+    if (!onHold) return;
+    holdTimer.current = setTimeout(() => {
+      held.current = true;
+      onHold();
+    }, holdDuration);
+  };
+
+  const endHold = (fireClick) => {
+    clearHold();
+    if (!held.current && fireClick && onClick) onClick();
+    held.current = false;
+  };
+
   return (
     <button
-      onClick={(e) => { e.stopPropagation(); if (onClick) onClick(); }}
-      onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); if (onClick) onClick(); }}
+      onClick={(e) => e.stopPropagation()}
+      onMouseDown={(e) => { e.stopPropagation(); startHold(); }}
+      onMouseUp={(e) => { e.stopPropagation(); endHold(true); }}
+      onMouseLeave={clearHold}
+      onTouchStart={(e) => { e.stopPropagation(); startHold(); }}
+      onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); endHold(true); }}
+      onTouchCancel={() => endHold(false)}
       aria-label="Open actions"
       style={{
         width: size, height: size, padding: 0, border: 'none', background: 'transparent',
         borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center',
-        justifyContent: 'center', animation: 'fadeIn 0.3s ease',
+        justifyContent: 'center', animation: isOpen ? 'fadeIn 0.3s ease' : 'mandalaPulse 3s ease-in-out infinite',
       }}
     >
       <svg width={size} height={size} viewBox={`0 0 ${VIEW} ${VIEW}`}>
@@ -52,6 +86,10 @@ function MandalaButton({ onClick, size = 44 }) {
         @keyframes mandalaSpin {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
+        }
+        @keyframes mandalaPulse {
+          0%, 100% { transform: scale(1.0); }
+          50%      { transform: scale(1.08); }
         }
       `}</style>
     </button>
