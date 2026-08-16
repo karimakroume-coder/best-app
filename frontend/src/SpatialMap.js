@@ -197,6 +197,26 @@ function generateDrips(width, height) {
   return { width, height, paths };
 }
 
+// ── MAP TRANSITION SOUND (Web Audio API) ─────────────────────────────────
+let _audioCtx = null;
+function playMapTransitionSound() {
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = _audioCtx;
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(440, now + 0.15);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  } catch (e) {}
+}
+
 function LockBadge() {
   return (
     <span style={{ position:'absolute', top:'-4px', right:'-4px',
@@ -307,6 +327,15 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [uiOpen, setUiOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
   const [transitionPhase, setTransitionPhase] = useState('');
+  const [fireflagRemaining, setFireflagRemaining] = useState(null);
+
+  const MAP_LABELS = {
+    'world-best': 'WORLD BEST',
+    'best-map': 'BEST MAP',
+    'my-best': 'MY BEST',
+    'crew-best': 'CREW BEST',
+    'crown': 'CROWN',
+  };
   const [pbRankings, setPbRankings] = useState([]);
 
   // ── PROGRESSIVE REGISTRATION GATE ────────────────────────────────────────
@@ -437,6 +466,16 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     return () => { cancelled = true; };
   }, [currentMap, userId]);
 
+  // ── FIREFLAG REMAINING COUNT ─────────────────────────────────────────────
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    axios.get(`https://web-production-a267.up.railway.app/fireflag/remaining/${userId}`)
+      .then(res => { if (!cancelled) setFireflagRemaining(res.data.remaining); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [userId]);
+
   // ── CINEMATIC MAP TRANSITION ──────────────────────────────────────────
   // Detects currentMap changes from outside and triggers the transition sequence.
   const prevMapRef = useRef(currentMap);
@@ -450,13 +489,14 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
   useEffect(() => {
     if (!transitioning) return;
-    const exitTimer = setTimeout(() => setTransitionPhase('logo'), 400);
-    const logoTimer = setTimeout(() => setTransitionPhase('enter'), 700);
+    playMapTransitionSound();
+    const exitTimer = setTimeout(() => setTransitionPhase('logo'), 300);
+    const logoTimer = setTimeout(() => setTransitionPhase('enter'), 600);
     const enterTimer = setTimeout(() => {
       setTransitionPhase('');
       setTransitioning(false);
       playDropAnimation(Math.floor(Math.random() * Math.max(activeRankings.length, 1)) + 1);
-    }, 1100);
+    }, 900);
     return () => { clearTimeout(exitTimer); clearTimeout(logoTimer); clearTimeout(enterTimer); };
   }, [transitioning, playDropAnimation, activeRankings.length]);
 
@@ -1119,21 +1159,37 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     );
   }
   if (currentMap === 'crew-best') {
+    const crewAvatars = ['#C8A951','#A8A9AD','#F5E6C8','#CD7F32','#8B7355'];
     return (
       <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
                     display:'flex', flexDirection:'column', alignItems:'center',
                     justifyContent:'center', animation: transitionPhase === 'enter' ? 'mapEnter 0.4s ease' : 'none',
                     opacity: transitionPhase === 'exit' ? 0 : 1,
                     transition: transitionPhase === 'exit' ? 'opacity 0.4s ease' : 'none' }}>
+        <div style={{ display:'flex', gap:'8px', marginBottom:'20px' }}>
+          {crewAvatars.map((c, i) => (
+            <div key={i} style={{ width:'36px', height:'36px', borderRadius:'50%',
+                                  border:`2px solid ${c}`, backgroundColor:'transparent',
+                                  display:'flex', alignItems:'center', justifyContent:'center',
+                                  opacity: 0.5 + (i === 0 ? 0.5 : 0) }}>
+              <span style={{ color:c, fontSize:'14px', fontWeight:'bold' }}>?</span>
+            </div>
+          ))}
+        </div>
         <div style={{ fontFamily:'Pacifico, cursive', color:'#CD7F32',
-                      fontSize:'clamp(28px,7vw,56px)', marginBottom:'16px',
+                      fontSize:'clamp(28px,7vw,56px)', marginBottom:'12px',
                       textShadow:'0 0 30px rgba(205,127,50,0.3)' }}>
           CREW BEST
         </div>
         <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#555',
-                      fontSize:'12px', letterSpacing:'3px' }}>
-          Create your crew in Phase 2
+                      fontSize:'12px', letterSpacing:'3px', marginBottom:'20px' }}>
+          Vote with your crew on the best videos
         </div>
+        <button style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'13px', letterSpacing:'4px',
+                         color:'#0D0800', backgroundColor:'#CD7F32', border:'none', borderRadius:0,
+                         padding:'10px 28px', cursor:'pointer', opacity:0.6 }}>
+          CREATE CREW
+        </button>
         <style>{`
           @keyframes mapEnter { from { opacity:0; transform:scale(1.05); } to { opacity:1; transform:scale(1); } }
         `}</style>
@@ -1225,7 +1281,19 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
   // ── WORLD BEST FORMATION (zoomLevel 99, locked) ─────────────────────────
   if (zoomLevel === 99) {
-    return renderFormation(1, (v) => playDropAnimation(v.rank), 'TAP ANY VIDEO TO EXPLORE');
+    return (
+      <div style={{ position:'relative', width:'100vw', height:'100vh' }}>
+        {renderFormation(1, (v) => playDropAnimation(v.rank), 'TAP ANY VIDEO TO EXPLORE')}
+        <div style={{ position:'fixed', bottom:'40px', left:'50%', transform:'translateX(-50%)',
+                      zIndex:10, pointerEvents:'none', animation:'fadeIn 0.6s ease' }}>
+          <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C9A84C',
+                        fontSize:'9px', letterSpacing:'6px', textAlign:'center',
+                        textShadow:'0 0 12px rgba(201,168,76,0.5)' }}>
+            GLOBAL RANKING · {totalRanks} VIDEOS
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // ── FORMATION FORMING (zoomLevel 5, 50/50 blend) ────────────────────────
@@ -1348,6 +1416,31 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       {/* VIGNETTE */}
       <div style={{ position:'fixed', inset:0, zIndex:5, pointerEvents:'none',
                     background:'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
+
+      {/* MAP INDICATOR PILL — shows current map when UI is open */}
+      {uiOpen && (
+        <div style={{ position:'fixed', top:'60px', left:'50%', transform:'translateX(-50%)',
+                      zIndex:160, backgroundColor:'rgba(13,8,0,0.85)',
+                      border:'1px solid #C8A951', borderRadius:'16px',
+                      padding:'6px 20px', pointerEvents:'none',
+                      animation:'fadeInSimple 0.3s ease' }}>
+          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+                         fontSize:'12px', letterSpacing:'4px' }}>
+            {MAP_LABELS[currentMap] || currentMap.toUpperCase()}
+          </span>
+        </div>
+      )}
+
+      {/* DISCOVERY SCORE — near profile area when UI is open */}
+      {uiOpen && discoveryScore > 0 && (
+        <div style={{ position:'fixed', top:'60px', right:'80px', zIndex:160,
+                      pointerEvents:'none', animation:'fadeInSimple 0.3s ease' }}>
+          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C9A84C',
+                         fontSize:'11px', letterSpacing:'2px', opacity:0.8 }}>
+            ★ {discoveryScore}
+          </span>
+        </div>
+      )}
 
       {/* GRAIN TEXTURE */}
       <div style={{ position:'fixed', inset:0, zIndex:6, pointerEvents:'none', opacity:0.06,
@@ -1544,6 +1637,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       {dotState === 'three' && !isFlagged && (
         <div style={{ position:'absolute', bottom:'16px', right:'16px', zIndex:9,
                       display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'6px' }}>
+          {fireflagRemaining !== null && (
+            <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+                           fontSize:'9px', letterSpacing:'2px', opacity:0.7 }}>
+              {fireflagRemaining} FLAGS LEFT
+            </span>
+          )}
           {fireflagError && (
             <span style={{ color:'#E74C3C', fontSize:'8px', letterSpacing:'1px',
                            maxWidth:'140px', textAlign:'right' }}>
@@ -2055,6 +2154,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         @keyframes fadeIn {
           from { opacity:0; transform:scale(0.5); }
           to   { opacity:1; transform:scale(1); }
+        }
+        @keyframes fadeInSimple {
+          from { opacity:0; }
+          to   { opacity:1; }
         }
         @keyframes popIn {
           from { opacity:0; transform:scale(0); }
