@@ -211,10 +211,32 @@ def get_color_distribution(video_id: str):
     distribution = {c: round((n/total)*100, 1) for c, n in counts.items()}
     return {"video_id": video_id, "total": total, "distribution": distribution, "marks": marks}
 
+async def generate_poetic_description(title: str, channel: str) -> str:
+    try:
+        import google.generativeai as genai
+        import os
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+        model = genai.GenerativeModel("gemini-2.0-flash")
+        prompt = f"""Write ONE LINE only.
+Not a description. A poetic distillation.
+Under 12 words. No clichés. No adjectives
+like beautiful or amazing. Show do not tell.
+Write what the video DOES not what it IS.
+Title: {title}
+Channel: {channel}"""
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+        return text[:100] if text else "A moment worth keeping."
+    except Exception:
+        return "A moment worth keeping."
+
+
 @app.post("/personal-best/add")
-def add_personal_best(payload: dict):
+async def add_personal_best(payload: dict):
     user_id = payload.get("user_id")
     video_id = payload.get("video_id")
+    title = payload.get("title", "")
+    channel = payload.get("channel", "")
     if not user_id or not video_id:
         raise HTTPException(status_code=400, detail="user_id and video_id are required")
     client = get_client()
@@ -239,7 +261,10 @@ def add_personal_best(payload: dict):
     current_score = user_data.data[0]["discovery_score"] if user_data.data else 0
     client.table("users").update({"discovery_score": current_score + 50}).eq("user_id", user_id).execute()
 
-    return {"message": "Added to Personal Best 100", "points_earned": 50, "total": total + 1}
+    description = await generate_poetic_description(title, channel)
+    client.table("personal_best").update({"ai_description": description}).eq("user_id", user_id).eq("video_id", video_id).execute()
+
+    return {"message": "Added to Personal Best 100", "points_earned": 50, "total": total + 1, "ai_description": description}
 
 @app.get("/personal-best/{user_id}")
 def get_personal_best(user_id: str):

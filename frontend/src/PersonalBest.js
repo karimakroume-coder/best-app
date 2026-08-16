@@ -211,8 +211,35 @@ function PersonalBest({ userId }) {
         );
       })}
 
+      {items.length >= 3 && (
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '24px 16px 8px' }}>
+          <button
+            onClick={() => {
+              const ids = items.map(v => v.video_id).join(',');
+              window.open('https://www.youtube.com/watch_videos?video_ids=' + ids, '_blank');
+            }}
+            onTouchEnd={(e) => {
+              e.preventDefault();
+              const ids = items.map(v => v.video_id).join(',');
+              window.open('https://www.youtube.com/watch_videos?video_ids=' + ids, '_blank');
+            }}
+            style={{
+              fontFamily: 'Bebas Neue, sans-serif', fontSize: '14px',
+              letterSpacing: '4px', color: '#C8A951',
+              backgroundColor: 'transparent',
+              border: '1px solid #C8A951',
+              borderRadius: 0, padding: '10px 28px',
+              cursor: 'pointer',
+              minWidth: '44px', minHeight: '44px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+            ▶ WATCH ALL ON YOUTUBE
+          </button>
+        </div>
+      )}
+
       {items.length > 0 && (
-        <div style={{ textAlign: 'center', padding: '24px 16px',
+        <div style={{ textAlign: 'center', padding: '16px 16px 24px',
                       color: '#3a2f14', fontFamily: 'Bebas Neue, sans-serif',
                       fontSize: '12px', letterSpacing: '4px' }}>
           {items.length} / 100 SAVED
