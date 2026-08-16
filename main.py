@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from dotenv import load_dotenv
 from datetime import datetime, timedelta, timezone
-import base64, binascii, hashlib, os, re, sys, time, uuid
+import base64, binascii, hashlib, os, random, re, sys, time, uuid
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 from ranking.fetcher import fetch_trending
 from ranking.scorer import compute_score, is_creator_content
@@ -737,7 +737,7 @@ def get_app_config():
             "five_maps": True,
             "creator_studio": False,
             "crown_competition": False,
-            "crew_best": False,
+            "crew_best": True,
             "whisper_system": False,
             "ai_descriptions": True,
             "rising_fast": True,
@@ -775,6 +775,180 @@ def mobile_token(payload: dict):
         return {"access_token": token, "user_id": user_id}
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired Supabase token")
+
+
+# ── CREW BEST (Group Voting) ─────────────────────────────────────────────
+
+def generate_invite_code():
+    return ''.join(random.choices('ABCDEFGHJKLMNPQRSTUVWXYZ23456789', k=6))
+
+
+@app.post("/crew/create")
+def create_crew(payload: dict):
+    name = payload.get("name", "").strip()
+    creator_id = payload.get("creator_id")
+    if not name or not creator_id:
+        raise HTTPException(status_code=400, detail="name and creator_id required")
+    client = get_client()
+    code = generate_invite_code()
+    result = client.table("crew_groups").insert({
+        "name": name, "invite_code": code, "creator_id": creator_id,
+    }).execute()
+    group = result.data[0]
+    client.table("crew_members").insert({
+        "group_id": group["id"], "user_id": creator_id,
+    }).execute()
+    return {"success": True, "group": group}
+
+
+@app.post("/crew/join")
+def join_crew(payload: dict):
+    invite_code = payload.get("invite_code", "").strip().upper()
+    user_id = payload.get("user_id")
+    if not invite_code or not user_id:
+        raise HTTPException(status_code=400, detail="invite_code and user_id required")
+    client = get_client()
+    groups = client.table("crew_groups").select("id").eq("invite_code", invite_code).execute()
+    if not groups.data:
+        raise HTTPException(status_code=404, detail="Crew not found")
+    group_id = groups.data[0]["id"]
+    existing = client.table("crew_members").select("id").eq("group_id", group_id).eq("user_id", user_id).execute()
+    if existing.data:
+        raise HTTPException(status_code=409, detail="Already in this crew")
+    client.table("crew_members").insert({"group_id": group_id, "user_id": user_id}).execute()
+    return {"success": True, "group_id": group_id}
+
+
+@app.post("/crew/leave")
+def leave_crew(payload: dict):
+    group_id = payload.get("group_id")
+    user_id = payload.get("user_id")
+    if not group_id or not user_id:
+        raise HTTPException(status_code=400, detail="group_id and user_id required")
+    client = get_client()
+    client.table("crew_members").delete().eq("group_id", group_id).eq("user_id", user_id).execute()
+    return {"success": True}
+
+
+@app.post("/crew/add-video")
+def add_crew_video(payload: dict):
+    group_id = payload.get("group_id")
+    video_id = payload.get("video_id")
+    user_id = payload.get("user_id")
+    if not group_id or not video_id or not user_id:
+        raise HTTPException(status_code=400, detail="group_id, video_id, and user_id required")
+    client = get_client()
+    existing = client.table("crew_members").select("id").eq("group_id", group_id).eq("user_id", user_id).execute()
+    if not existing.data:
+        raise HTTPException(status_code=403, detail="Not a member of this crew")
+    dup = client.table("crew_videos").select("id").eq("group_id", group_id).eq("video_id", video_id).execute()
+    if dup.data:
+        raise HTTPException(status_code=409, detail="Video already in crew")
+    client.table("crew_videos").insert({
+        "group_id": group_id, "video_id": video_id, "added_by": user_id,
+    }).execute()
+    return {"success": True}
+
+
+@app.post("/crew/vote")
+def vote_crew_video(payload: dict):
+    group_id = payload.get("group_id")
+    video_id = payload.get("video_id")
+    user_id = payload.get("user_id")
+    vote_val = payload.get("vote", 1)
+    if not group_id or not video_id or not user_id:
+        raise HTTPException(status_code=400, detail="group_id, video_id, and user_id required")
+    client = get_client()
+    existing = client.table("crew_members").select("id").eq("group_id", group_id).eq("user_id", user_id).execute()
+    if not existing.data:
+        raise HTTPException(status_code=403, detail="Not a member of this crew")
+    existing_vote = client.table("crew_votes").select("id, vote").eq("group_id", group_id) \
+        .eq("video_id", video_id).eq("user_id", user_id).execute()
+    if existing_vote.data:
+        old_vote = existing_vote.data[0]["vote"]
+        if old_vote == vote_val:
+            client.table("crew_votes").delete().eq("id", existing_vote.data[0]["id"]).execute()
+            return {"success": True, "vote": 0}
+        client.table("crew_votes").update({"vote": vote_val}).eq("id", existing_vote.data[0]["id"]).execute()
+    else:
+        client.table("crew_votes").insert({
+            "group_id": group_id, "video_id": video_id, "user_id": user_id, "vote": vote_val,
+        }).execute()
+    return {"success": True, "vote": vote_val}
+
+
+@app.get("/crew/groups/{user_id}")
+def list_crew_groups(user_id: str):
+    client = get_client()
+    memberships = client.table("crew_members").select("group_id").eq("user_id", user_id).execute()
+    group_ids = [m["group_id"] for m in (memberships.data or [])]
+    if not group_ids:
+        return {"groups": []}
+    groups = client.table("crew_groups").select("*").in_("id", group_ids).execute()
+    result = []
+    for g in (groups.data or []):
+        mem_count = client.table("crew_members").select("id", count="exact").eq("group_id", g["id"]).execute()
+        vid_count = client.table("crew_videos").select("id", count="exact").eq("group_id", g["id"]).execute()
+        result.append({
+            **g,
+            "member_count": mem_count.count or 0,
+            "video_count": vid_count.count or 0,
+        })
+    return {"groups": result}
+
+
+@app.get("/crew/{group_id}/ranking")
+def get_crew_ranking(group_id: str):
+    client = get_client()
+    videos = client.table("crew_videos").select("video_id, added_by, added_at").eq("group_id", group_id).execute()
+    if not videos.data:
+        return {"group_id": group_id, "videos": []}
+    video_ids = [v["video_id"] for v in videos.data]
+    votes = client.table("crew_votes").select("video_id, vote").eq("group_id", group_id).execute()
+    vote_map = {}
+    user_vote_map = {}
+    for v in (votes.data or []):
+        vid = v["video_id"]
+        vote_map[vid] = vote_map.get(vid, 0) + v["vote"]
+    videos_info = client.table("videos").select("video_id, title, channel_name, thumbnail_url") \
+        .in_("video_id", video_ids).execute()
+    info_map = {v["video_id"]: v for v in (videos_info.data or [])}
+    result = []
+    for v in videos.data:
+        vid = v["video_id"]
+        info = info_map.get(vid, {})
+        result.append({
+            "video_id": vid,
+            "title": info.get("title", ""),
+            "channel_name": info.get("channel_name", ""),
+            "thumbnail_url": info.get("thumbnail_url", ""),
+            "votes": vote_map.get(vid, 0),
+            "added_by": v["added_by"],
+            "added_at": v["added_at"],
+        })
+    result.sort(key=lambda x: x["votes"], reverse=True)
+    return {"group_id": group_id, "videos": result}
+
+
+@app.get("/crew/{group_id}/members")
+def get_crew_members(group_id: str):
+    client = get_client()
+    members = client.table("crew_members").select("user_id, joined_at").eq("group_id", group_id).execute()
+    user_ids = [m["user_id"] for m in (members.data or [])]
+    user_map = {}
+    if user_ids:
+        users = client.table("users").select("user_id, username, discovery_score").in_("user_id", user_ids).execute()
+        user_map = {u["user_id"]: u for u in (users.data or [])}
+    result = []
+    for m in (members.data or []):
+        u = user_map.get(m["user_id"], {})
+        result.append({
+            "user_id": m["user_id"],
+            "username": u.get("username", "Anonymous"),
+            "discovery_score": u.get("discovery_score", 0),
+            "joined_at": m["joined_at"],
+        })
+    return {"group_id": group_id, "members": result}
 
 
 # ── FIREFLAG EXPIRY ────────────────────────────────────────────────────────

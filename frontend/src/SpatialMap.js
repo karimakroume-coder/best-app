@@ -11,6 +11,7 @@ import HuntGame from './HuntGame';
 import { ReactComponent as FlexCamera } from './assets/icons/flex-camera.svg';
 import MandalaButton from './MandalaButton';
 import MandalaFrameRings from './MandalaFrameRings';
+import CrewBest from './CrewBest';
 
 const RANK_STYLES = {
   1:  { color: '#C9A84C', fontSize: '72px', fontWeight: 'bold' },
@@ -1228,41 +1229,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     );
   }
   if (currentMap === 'crew-best') {
-    const crewAvatars = ['#C8A951','#A8A9AD','#F5E6C8','#CD7F32','#8B7355'];
     return (
-      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
-                    display:'flex', flexDirection:'column', alignItems:'center',
-                    justifyContent:'center', animation: transitionPhase === 'enter' ? 'mapEnter 0.4s ease' : 'none',
-                    opacity: transitionPhase === 'exit' ? 0 : 1,
-                    transition: transitionPhase === 'exit' ? 'opacity 0.4s ease' : 'none' }}>
-        <div style={{ display:'flex', gap:'8px', marginBottom:'20px' }}>
-          {crewAvatars.map((c, i) => (
-            <div key={i} style={{ width:'36px', height:'36px', borderRadius:'50%',
-                                  border:`2px solid ${c}`, backgroundColor:'transparent',
-                                  display:'flex', alignItems:'center', justifyContent:'center',
-                                  opacity: 0.5 + (i === 0 ? 0.5 : 0) }}>
-              <span style={{ color:c, fontSize:'14px', fontWeight:'bold' }}>?</span>
-            </div>
-          ))}
-        </div>
-        <div style={{ fontFamily:'Pacifico, cursive', color:'#CD7F32',
-                      fontSize:'clamp(28px,7vw,56px)', marginBottom:'12px',
-                      textShadow:'0 0 30px rgba(205,127,50,0.3)' }}>
-          CREW BEST
-        </div>
-        <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#555',
-                      fontSize:'12px', letterSpacing:'3px', marginBottom:'20px' }}>
-          Vote with your crew on the best videos
-        </div>
-        <button style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'13px', letterSpacing:'4px',
-                         color:'#0D0800', backgroundColor:'#CD7F32', border:'none', borderRadius:0,
-                         padding:'10px 28px', cursor:'pointer', opacity:0.6 }}>
-          CREATE CREW
-        </button>
-        <style>{`
-          @keyframes mapEnter { from { opacity:0; transform:scale(1.05); } to { opacity:1; transform:scale(1); } }
-        `}</style>
-      </div>
+      <CrewBest
+        rankings={rankings}
+        transitionPhase={transitionPhase}
+        setCurrentMap={setCurrentMap}
+      />
     );
   }
   if (currentMap === 'crown') {
