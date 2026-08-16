@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import axios from 'axios';
 import Login from './Login';
@@ -9,7 +9,6 @@ import ColorOnboarding from './ColorOnboarding';
 import PersonalBest from './PersonalBest';
 import Countdown from './Countdown';
 import Creators from './Creators';
-import fireflagPng from './assets/icons/FIREFLAG.png';
 
 const DEFAULT_USER_ID = 'a307cc62-3afd-47b0-9911-9300a934d788';
 
@@ -46,13 +45,6 @@ function Rankings() {
   // Only pass a userId when there is an actual auth token, so the
   // progressive registration gate can detect a logged-out visitor.
   const userId = localStorage.getItem('best_token') ? DEFAULT_USER_ID : null;
-
-  // Auto-scroll the category strip so the active pill is centered.
-  const categoryPillRefs = useRef({});
-  useEffect(() => {
-    const el = categoryPillRefs.current[selectedCategory];
-    if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  }, [selectedCategory]);
 
   useEffect(() => {
     const email = localStorage.getItem('best_email');
@@ -109,116 +101,9 @@ function Rankings() {
     <div style={{ backgroundColor: darkMode ? '#000000' : '#0A0A0A', minHeight: '100vh',
                   fontFamily: 'Arial, sans-serif', position: 'relative' }}>
 
-      {/* HEADER */}
-      <div style={{ position: 'fixed', top: 0, left: 0, right: 0,
-                    padding: '12px 24px', display: 'flex',
-                    alignItems: 'center', justifyContent: 'space-between',
-                    zIndex: 100, backgroundColor: darkMode ? 'rgba(0,0,0,0.9)' : 'rgba(10,10,10,0.8)',
-                    backdropFilter: 'blur(8px)' }}>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <span style={{ fontFamily: 'Pacifico, cursive', color: '#C8A951',
-                           fontSize: '20px', lineHeight: 1 }}>BEST</span>
-            <span style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
-                           fontSize: '10px', letterSpacing: '6px' }}>VIDEO RANKING</span>
-          </div>
-          <div className="category-strip"
-               style={{ display: 'flex', gap: '8px', marginLeft: '16px',
-                        overflowX: 'auto', scrollBehavior: 'smooth',
-                        scrollbarWidth: 'none', msOverflowStyle: 'none',
-                        maxWidth: '42vw' }}>
-            {CATEGORIES.map(cat => (
-              <button key={cat.value}
-                ref={el => { categoryPillRefs.current[cat.value] = el; }}
-                onClick={() => setSelectedCategory(cat.value)}
-                style={{ backgroundColor: selectedCategory === cat.value
-                           ? '#C8A951' : 'transparent',
-                         color: selectedCategory === cat.value ? '#0D0800' : '#555',
-                         border: selectedCategory === cat.value ? 'none' : '1px solid #333',
-                         padding: '6px 20px', cursor: 'pointer', flexShrink: 0,
-                         fontFamily: 'Bebas Neue, sans-serif', fontSize: '13px',
-                         letterSpacing: '3px', borderRadius: '2px' }}>
-                {cat.label.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <style>{`
-            .category-strip::-webkit-scrollbar { display: none; }
-          `}</style>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <a href="/personal-best"
-             title="My Personal Best 100"
-             onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/personal-best'; }}
-             style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
-                      fontSize: '10px', letterSpacing: '3px', textDecoration: 'none',
-                      backgroundColor: 'transparent', border: '1px solid #C8A951',
-                      borderRadius: 0, padding: '4px 10px', cursor: 'pointer',
-                      minWidth: '44px', minHeight: '44px',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            MY BEST
-          </a>
-          <button onClick={() => setHuntActive(a => !a)}
-            title={huntActive ? 'Stop hunt' : 'Start hunt'}
-            style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
-                     padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
-                           width: '16px', height: '16px', borderRadius: '50%',
-                           border: `1.5px solid ${huntActive ? '#C9A84C' : '#555'}`,
-                           boxShadow: huntActive ? '0 0 6px rgba(201,168,76,0.7)' : 'none',
-                           transition: 'border-color 0.3s ease, box-shadow 0.3s ease' }}>
-              <span style={{ fontSize: '8px', lineHeight: 1,
-                             color: huntActive ? '#C9A84C' : '#555' }}>▲</span>
-            </span>
-          </button>
-          <button onClick={() => setDarkMode(d => !d)}
-            title={darkMode ? 'Dark mode on' : 'Dark mode off'}
-            style={{ backgroundColor: 'transparent', border: 'none', cursor: 'pointer',
-                     padding: '2px', display: 'flex', alignItems: 'center' }}>
-            <img src={fireflagPng} alt="Toggle dark mode"
-                 style={{ width: '16px', height: '16px', objectFit: 'contain',
-                          filter: darkMode
-                            ? 'drop-shadow(0 0 4px rgba(243,156,18,0.9)) saturate(1.5)'
-                            : 'grayscale(100%) brightness(0.7) opacity(0.6)',
-                          transition: 'filter 0.3s ease' }} />
-          </button>
-          {userEmail ? (
-            <>
-              <span style={{ color: '#C9A84C', fontSize: '10px', letterSpacing: '1px' }}>
-                {userEmail}
-              </span>
-              {discoveryScore !== null && (
-                <span style={{ color: '#555', fontSize: '10px', letterSpacing: '1px' }}>
-                  DISCOVERY {discoveryScore}
-                </span>
-              )}
-              <button onClick={handleLogout}
-                style={{ backgroundColor: 'transparent', border: '1px solid #333',
-                         color: '#555', padding: '3px 10px', cursor: 'pointer',
-                         fontSize: '9px', letterSpacing: '2px' }}>
-                LOGOUT
-              </button>
-            </>
-          ) : (
-            <>
-              <a href="/login"
-                 style={{ color: '#C9A84C', fontSize: '10px',
-                          letterSpacing: '2px', textDecoration: 'none' }}>
-                SIGN IN
-              </a>
-              <a href="/register"
-                 style={{ color: '#555', fontSize: '10px',
-                          letterSpacing: '2px', textDecoration: 'none' }}>
-                REGISTER
-              </a>
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* SPATIAL MAP */}
+      {/* SPATIAL MAP — the old fixed header has been folded into the
+          Mandala Control Center (category strip, hunt/dark-mode toggles,
+          profile/logout) rendered inside SpatialMap when uiOpen is true */}
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
                       height: '100vh', color: '#555', letterSpacing: '4px', fontSize: '12px' }}>
@@ -236,6 +121,13 @@ function Rankings() {
             currentMap={currentMap}
             setCurrentMap={setCurrentMap}
             onUIStateChange={setUiOpen}
+            categories={CATEGORIES}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+            userEmail={userEmail}
+            onLogout={handleLogout}
+            onToggleDarkMode={() => setDarkMode(d => !d)}
+            onToggleHunt={() => setHuntActive(a => !a)}
             onPersonalBestAdded={() => {
               setDiscoveryScore(prev => prev !== null ? prev + 50 : 50);
             }}

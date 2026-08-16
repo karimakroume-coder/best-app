@@ -173,6 +173,21 @@ const dotCircleStyle = {
   cursor: 'pointer',
 };
 
+// ── MANDALA CONTROL CENTER — labeled bottom actions + small utility icons ──
+const actionButtonStyle = {
+  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+  minWidth: '56px', minHeight: '56px', padding: '8px 4px',
+  fontFamily: 'Bebas Neue, sans-serif', fontSize: '9px', letterSpacing: '1.5px',
+  color: '#C8A951', cursor: 'pointer', background: 'transparent', border: 'none',
+};
+
+const microNavStyle = {
+  width: '30px', height: '30px', borderRadius: '50%',
+  border: '1px solid #C8A951', backgroundColor: 'rgba(13,8,0,0.85)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer', flexShrink: 0,
+};
+
 // ── THE MARK: paint-drip shapes ─────────────────────────────────────────────
 // Poured from the top of the screen, like paint dripping down a wall: wide
 // at the pour mouth, bulging into an organic belly, tapering to a point.
@@ -291,9 +306,7 @@ function WhisperCard({ coordKey }) {
   );
 }
 
-function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, onBeforeColor, darkMode, huntActive, onHuntComplete, onHuntStop, discoveryScore = 0, currentMap, setCurrentMap, onUIStateChange }) {
-  console.log('SpatialMap active rankings:', activeRankings?.length, 'map:', currentMap);
-
+function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, onBeforeColor, darkMode, huntActive, onHuntComplete, onHuntStop, discoveryScore = 0, currentMap, setCurrentMap, onUIStateChange, categories = [], selectedCategory, onSelectCategory, userEmail, onLogout, onToggleDarkMode, onToggleHunt }) {
   const [currentX, setCurrentX]               = useState(0);
   const [currentY, setCurrentY]                = useState(0);
   const [zoomLevel, setZoomLevel]              = useState(1);
@@ -452,14 +465,39 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     });
   }, [activeRankings, rankToCoord]);
 
-  // ── UI OPEN STATE — report to parent for BNavigation visibility ────────
-  const toggleUi = useCallback(() => {
-    setUiOpen(prev => {
-      const next = !prev;
-      if (onUIStateChange) onUIStateChange(next);
-      return next;
-    });
-  }, [onUIStateChange]);
+  // ── MANDALA CONTROL CENTER — open/close the bloomed UI. Reports uiOpen to
+  // App.js (for BNavigation visibility) via an effect rather than calling
+  // onUIStateChange inline here, since calling a parent's setState from
+  // inside a child event handler that also touches sibling state is easy to
+  // get right but calling it from inside a *functional updater* (as an
+  // earlier version of toggleUI did) isn't — React flags that as updating
+  // a different component while rendering.
+  const openUI = useCallback(() => {
+    setUiOpen(true);
+    setDotState('three');
+  }, []);
+
+  const closeUI = useCallback(() => {
+    setUiOpen(false);
+    setDotState('single');
+    setFlexWallOpen(false);
+  }, []);
+
+  const toggleUI = useCallback(() => {
+    const next = !uiOpen;
+    setUiOpen(next);
+    setDotState(next ? 'three' : 'single');
+    if (!next) setFlexWallOpen(false);
+  }, [uiOpen]);
+
+  useEffect(() => {
+    if (onUIStateChange) onUIStateChange(uiOpen);
+  }, [uiOpen, onUIStateChange]);
+
+  // Hides peripheral single-card chrome (RANDOM/ZOOM/hint) while the
+  // Mandala Control Center is bloomed open, so it doesn't compete with the
+  // category strip / action row / profile row.
+  const chromeHidden = uiOpen;
 
   // ── PERSONAL BEST DATA — fetch when my-best map is active ─────────────
   useEffect(() => {
@@ -497,30 +535,6 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       .catch(() => {});
     return () => { cancelled = true; };
   }, [userId]);
-
-  // ── CINEMATIC MAP TRANSITION ──────────────────────────────────────────
-  // Detects currentMap changes from outside and triggers the transition sequence.
-  const prevMapRef = useRef(currentMap);
-  useEffect(() => {
-    if (prevMapRef.current !== currentMap && !transitioning) {
-      setTransitioning(true);
-      setTransitionPhase('exit');
-    }
-    prevMapRef.current = currentMap;
-  }, [currentMap, transitioning]);
-
-  useEffect(() => {
-    if (!transitioning) return;
-    playMapTransitionSound();
-    const exitTimer = setTimeout(() => setTransitionPhase('logo'), 300);
-    const logoTimer = setTimeout(() => setTransitionPhase('enter'), 600);
-    const enterTimer = setTimeout(() => {
-      setTransitionPhase('');
-      setTransitioning(false);
-      playDropAnimation(Math.floor(Math.random() * Math.max(activeRankings.length, 1)) + 1);
-    }, 900);
-    return () => { clearTimeout(exitTimer); clearTimeout(logoTimer); clearTimeout(enterTimer); };
-  }, [transitioning, playDropAnimation, activeRankings.length]);
 
   // ── DOT FADE TIMER ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -620,6 +634,30 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       }
     });
   }, [dropApi, rankToCoord, totalRanks]);
+
+  // ── CINEMATIC MAP TRANSITION ──────────────────────────────────────────
+  // Detects currentMap changes from outside and triggers the transition sequence.
+  const prevMapRef = useRef(currentMap);
+  useEffect(() => {
+    if (prevMapRef.current !== currentMap && !transitioning) {
+      setTransitioning(true);
+      setTransitionPhase('exit');
+    }
+    prevMapRef.current = currentMap;
+  }, [currentMap, transitioning]);
+
+  useEffect(() => {
+    if (!transitioning) return;
+    playMapTransitionSound();
+    const exitTimer = setTimeout(() => setTransitionPhase('logo'), 300);
+    const logoTimer = setTimeout(() => setTransitionPhase('enter'), 600);
+    const enterTimer = setTimeout(() => {
+      setTransitionPhase('');
+      setTransitioning(false);
+      playDropAnimation(Math.floor(Math.random() * Math.max(activeRankings.length, 1)) + 1);
+    }, 900);
+    return () => { clearTimeout(exitTimer); clearTimeout(logoTimer); clearTimeout(enterTimer); };
+  }, [transitioning, playDropAnimation, activeRankings.length]);
 
   // ── THE MARK: paint drips → strip keyboard → snapshot → recede ──────────
   const startMark = useCallback((color) => {
@@ -878,9 +916,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     } else if (absX < 10 && absY < 10) {
       // Tap — reveal the dot UI, or collapse the open panel back to the dot.
       if (dotState === 'hidden') setDotState('single');
-      else if (dotState === 'three') { setDotState('single'); setUiOpen(false); if (onUIStateChange) onUIStateChange(false); }
+      else if (dotState === 'three') {
+        setDotState('single'); setUiOpen(false); setFlexWallOpen(false);
+        if (onUIStateChange) onUIStateChange(false);
+      }
     }
-  }, [markStage, currentX, currentY, navigateToCoord, dotState, resetFocusTimer]);
+  }, [markStage, currentX, currentY, navigateToCoord, dotState, resetFocusTimer, onUIStateChange]);
 
   // ── 3x3 GRID SWIPE NAV ───────────────────────────────────────────────────
   // The grid view has no useDrag binding of its own (only pinchBind for
@@ -1432,7 +1473,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
            resetFocusTimer();
            if (markStage !== 'idle') return;
            if (dotState === 'hidden') setDotState('single');
-           else if (dotState === 'three') setDotState('single');
+           else if (dotState === 'three') closeUI();
          }}>
 
       {/* VIGNETTE */}
@@ -1460,6 +1501,117 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C9A84C',
                          fontSize:'11px', letterSpacing:'2px', opacity:0.8 }}>
             ★ {discoveryScore}
+          </span>
+        </div>
+      )}
+
+      {/* MANDALA CONTROL CENTER — TOP BAR: category strip (left) slides down,
+          profile + utility row (right) fades in from the left */}
+      {uiOpen && (
+        <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:150,
+                      padding:'10px 16px', display:'flex', alignItems:'center',
+                      justifyContent:'space-between', gap:'12px',
+                      backgroundColor:'rgba(13,8,0,0.85)', backdropFilter:'blur(8px)',
+                      animation:'slideDown 0.3s ease-out' }}>
+
+          {/* CATEGORY STRIP */}
+          <div className="category-strip"
+               style={{ display:'flex', gap:'8px', overflowX:'auto',
+                        scrollBehavior:'smooth', scrollbarWidth:'none',
+                        msOverflowStyle:'none', maxWidth:'58vw' }}>
+            {categories.map(cat => (
+              <button key={cat.value}
+                onClick={(e) => { e.stopPropagation(); if (onSelectCategory) onSelectCategory(cat.value); }}
+                onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
+                  if (onSelectCategory) onSelectCategory(cat.value); }}
+                style={{ backgroundColor: selectedCategory === cat.value ? '#C8A951' : 'transparent',
+                         color: selectedCategory === cat.value ? '#0D0800' : '#C8A951',
+                         border: selectedCategory === cat.value ? 'none' : '1px solid #333',
+                         padding:'5px 14px', cursor:'pointer', flexShrink:0,
+                         fontFamily:'Bebas Neue, sans-serif', fontSize:'11px',
+                         letterSpacing:'2px', borderRadius:'2px' }}>
+                {cat.label.toUpperCase()}
+              </button>
+            ))}
+            <style>{`.category-strip::-webkit-scrollbar { display: none; }`}</style>
+          </div>
+
+          {/* PROFILE + UTILITY ROW */}
+          <div style={{ display:'flex', alignItems:'center', gap:'8px',
+                        flexShrink:0, animation:'fadeInLeft 0.35s ease-out' }}>
+
+            {/* Rotating FLEX photos — reuses the current video's flex reactions
+                as a stand-in "profile" strip until a per-user flex feed exists */}
+            {flexList.slice(0, 4).map((flex, i) => (
+              flex.photo_url && (
+                <img key={flex.id || i} src={flex.photo_url} alt=""
+                     style={{ width:'22px', height:'22px', borderRadius:'50%',
+                              objectFit:'cover', border:'1px solid #C8A951',
+                              animation:`fadeInLeft 0.35s ease-out ${i * 0.08}s both` }} />
+              )
+            ))}
+
+            <div onClick={(e) => { e.stopPropagation(); if (onToggleHunt) onToggleHunt(); }}
+                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); if (onToggleHunt) onToggleHunt(); }}
+                 title={huntActive ? 'Stop hunt' : 'Start hunt'}
+                 style={{ ...microNavStyle,
+                          borderColor: huntActive ? '#C9A84C' : '#555',
+                          boxShadow: huntActive ? '0 0 6px rgba(201,168,76,0.7)' : 'none' }}>
+              <span style={{ fontSize:'10px', color: huntActive ? '#C9A84C' : '#555' }}>▲</span>
+            </div>
+
+            <div onClick={(e) => { e.stopPropagation(); if (onToggleDarkMode) onToggleDarkMode(); }}
+                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); if (onToggleDarkMode) onToggleDarkMode(); }}
+                 title={darkMode ? 'Dark mode on' : 'Dark mode off'}
+                 style={{ ...microNavStyle,
+                          borderColor: darkMode ? '#C9A84C' : '#555',
+                          boxShadow: darkMode ? '0 0 6px rgba(201,168,76,0.7)' : 'none' }}>
+              <span style={{ fontSize:'10px' }}>{darkMode ? '●' : '○'}</span>
+            </div>
+
+            {userEmail ? (
+              <>
+                <span style={{ color:'#C9A84C', fontSize:'9px', letterSpacing:'1px', maxWidth:'80px',
+                               overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
+                  {userEmail}
+                </span>
+                <button onClick={(e) => { e.stopPropagation(); if (onLogout) onLogout(); }}
+                        onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); if (onLogout) onLogout(); }}
+                        style={{ backgroundColor:'transparent', border:'1px solid #333',
+                                 color:'#555', padding:'3px 8px', cursor:'pointer',
+                                 fontSize:'8px', letterSpacing:'1px' }}>
+                  LOGOUT
+                </button>
+              </>
+            ) : (
+              <>
+                <a href="/login" onClick={(e) => e.stopPropagation()}
+                   style={{ color:'#C9A84C', fontSize:'9px', letterSpacing:'1px', textDecoration:'none' }}>
+                  SIGN IN
+                </a>
+                <a href="/register" onClick={(e) => e.stopPropagation()}
+                   style={{ color:'#555', fontSize:'9px', letterSpacing:'1px', textDecoration:'none' }}>
+                  REGISTER
+                </a>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MANDALA CONTROL CENTER — RIGHT: FLEX wall slide-in tab */}
+      {uiOpen && !flexWallOpen && flexList.length > 0 && (
+        <div onClick={(e) => { e.stopPropagation(); setFlexWallOpen(true); }}
+             onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setFlexWallOpen(true); }}
+             style={{ position:'fixed', top:'50%', right:0, transform:'translateY(-50%)',
+                      zIndex:150, backgroundColor:'rgba(13,8,0,0.9)',
+                      border:'1px solid #C8A951', borderRight:'none',
+                      borderRadius:'8px 0 0 8px', padding:'10px 6px',
+                      cursor:'pointer', animation:'fadeInLeft 0.3s ease-out',
+                      writingMode:'vertical-rl', textOrientation:'mixed' }}>
+          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+                         fontSize:'10px', letterSpacing:'2px' }}>
+            {flexList.length} FLEX WALL
           </span>
         </div>
       )}
@@ -1693,74 +1845,80 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </div>
       )}
 
-      {/* ZOOM HINT */}
-      <div style={{ position:'absolute', bottom:'20px', left:'50%',
-                    transform:'translateX(-50%)', color:'#222',
-                    fontSize:'9px', letterSpacing:'2px', zIndex:3 }}>
-        PINCH TO ZOOM · SWIPE TO NAVIGATE · DOUBLE TAP FOR #1
-      </div>
+      {/* ZOOM HINT — hidden while the Mandala Control Center is open */}
+      {!chromeHidden && (
+        <div style={{ position:'absolute', bottom:'20px', left:'50%',
+                      transform:'translateX(-50%)', color:'#222',
+                      fontSize:'9px', letterSpacing:'2px', zIndex:3 }}>
+          PINCH TO ZOOM · SWIPE TO NAVIGATE · DOUBLE TAP FOR #1
+        </div>
+      )}
 
       {/* RANDOM BUTTON — triggers a new drop animation */}
-      <button
-        onClick={(e) => { e.stopPropagation();
-          playDropAnimation(Math.floor(Math.random() * totalRanks) + 1); }}
-        onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
-          playDropAnimation(Math.floor(Math.random() * totalRanks) + 1); }}
-        style={{ ...vintageButtonBase, position:'absolute', top:'64px', left:'16px', zIndex:110 }}>
-        RANDOM
-      </button>
+      {!chromeHidden && (
+        <button
+          onClick={(e) => { e.stopPropagation();
+            playDropAnimation(Math.floor(Math.random() * totalRanks) + 1); }}
+          onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
+            playDropAnimation(Math.floor(Math.random() * totalRanks) + 1); }}
+          style={{ ...vintageButtonBase, position:'absolute', top:'64px', left:'16px', zIndex:110 }}>
+          RANDOM
+        </button>
+      )}
 
       {/* ZOOM BUTTON (pinch fallback) */}
-      <button
-        onClick={(e) => { e.stopPropagation(); cycleZoom(); }}
-        onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); cycleZoom(); }}
-        style={zoomButtonStyle}>
-        ZOOM {zoomLevel}×
-      </button>
+      {!chromeHidden && (
+        <button
+          onClick={(e) => { e.stopPropagation(); cycleZoom(); }}
+          onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); cycleZoom(); }}
+          style={zoomButtonStyle}>
+          ZOOM {zoomLevel}×
+        </button>
+      )}
 
       {/* DOT UI */}
       {dotState !== 'hidden' && !showColorWheel && (
         <div style={{ position:'absolute', bottom:'120px', right:'24px', zIndex:10 }}>
 
-          {dotState === 'single' && (
-            <>
-              <MandalaButton onClick={() => { setDotState('three'); setUiOpen(true); if (onUIStateChange) onUIStateChange(true); }} />
-              {discoveryScore > 0 && (() => {
-                const milestones = [[100,'EXPLORER'],[200,'SCOUT'],[500,'GOLD'],[750,'LEGEND'],[1000,'ORACLE']];
-                const next = milestones.find(([t]) => discoveryScore < t);
-                if (!next) return null;
-                const [threshold, label] = next;
-                const prev = [...milestones].reverse().find(([t]) => discoveryScore >= t);
-                const floor = prev ? prev[0] : 0;
-                const pct = Math.min(100, Math.round(((discoveryScore - floor) / (threshold - floor)) * 100));
-                return (
-                  <div style={{ marginTop:'8px', width:'48px', textAlign:'center' }}>
-                    <div style={{ height:'3px', backgroundColor:'#1A1A1A', borderRadius:'2px', overflow:'hidden', marginBottom:'3px' }}>
-                      <div style={{ height:'100%', width:`${pct}%`, backgroundColor:'#C8A951', transition:'width 0.5s ease' }} />
-                    </div>
-                    <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951', fontSize:'7px', letterSpacing:'1px' }}>
-                      {label} {discoveryScore}/{threshold}
-                    </span>
-                  </div>
-                );
-              })()}
-            </>
-          )}
+          <MandalaButton onClick={toggleUI} onHold={closeUI} />
+
+          {dotState === 'single' && discoveryScore > 0 && (() => {
+            const milestones = [[100,'EXPLORER'],[200,'SCOUT'],[500,'GOLD'],[750,'LEGEND'],[1000,'ORACLE']];
+            const next = milestones.find(([t]) => discoveryScore < t);
+            if (!next) return null;
+            const [threshold, label] = next;
+            const prev = [...milestones].reverse().find(([t]) => discoveryScore >= t);
+            const floor = prev ? prev[0] : 0;
+            const pct = Math.min(100, Math.round(((discoveryScore - floor) / (threshold - floor)) * 100));
+            return (
+              <div style={{ marginTop:'8px', width:'48px', textAlign:'center' }}>
+                <div style={{ height:'3px', backgroundColor:'#1A1A1A', borderRadius:'2px', overflow:'hidden', marginBottom:'3px' }}>
+                  <div style={{ height:'100%', width:`${pct}%`, backgroundColor:'#C8A951', transition:'width 0.5s ease' }} />
+                </div>
+                <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951', fontSize:'7px', letterSpacing:'1px' }}>
+                  {label} {discoveryScore}/{threshold}
+                </span>
+              </div>
+            );
+          })()}
 
           {dotState === 'three' && (
             <div style={{
               backgroundColor:'rgba(13,8,0,0.9)', border:'1px solid #C8A951',
               borderRadius:'8px', padding:'12px 8px',
               display:'flex', flexDirection:'column', alignItems:'center', gap:'16px',
-              animation:'slideInRight 0.2s ease-out' }}>
+              animation:'slideUp 0.25s ease-out' }}>
 
-              {/* COLOR */}
+              {/* MARK — opens the color wheel / Mark flow */}
               <div
                 onClick={openColorWheel}
                 onTouchEnd={(e) => { e.preventDefault(); openColorWheel(e); }}
-                style={{ ...dotCircleStyle, position:'relative' }}>
-                <span style={{ fontSize:'16px', lineHeight:1 }}>🎨</span>
-                {!isLoggedIn && <LockBadge />}
+                style={actionButtonStyle}>
+                <div style={{ ...dotCircleStyle, position:'relative' }}>
+                  <span style={{ fontSize:'16px', lineHeight:1 }}>🎨</span>
+                  {!isLoggedIn && <LockBadge />}
+                </div>
+                MARK
               </div>
 
               {/* WATCH */}
@@ -1773,25 +1931,31 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 <span style={{ color:'#C8A951', fontSize:'16px', lineHeight:1 }}>▶</span>
               </div>
 
-              {/* PERSONAL BEST 100 */}
+              {/* MY 100 — add to Personal Best 100 */}
               <div
                 onClick={(e) => addToPersonalBest(e, currentVideo)}
                 onTouchEnd={(e) => { e.preventDefault(); addToPersonalBest(e, currentVideo); }}
-                style={{ ...dotCircleStyle, position:'relative',
+                style={{ ...actionButtonStyle,
                          cursor: personalBestVideos[currentVideo.video_id] ? 'default' : 'pointer' }}>
-                <span style={{ color:'#C8A951', fontSize:'16px', fontWeight:'bold', lineHeight:1 }}>
-                  {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
-                </span>
-                {!isLoggedIn && <LockBadge />}
+                <div style={{ ...dotCircleStyle, position:'relative' }}>
+                  <span style={{ color:'#C8A951', fontSize:'16px', fontWeight:'bold', lineHeight:1 }}>
+                    {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
+                  </span>
+                  {!isLoggedIn && <LockBadge />}
+                </div>
+                MY 100
               </div>
 
-              {/* FLEX CAMERA */}
+              {/* FLEX — opens the FLEX camera panel */}
               <div
                 onClick={openFlexPanel}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); openFlexPanel(e); }}
-                style={{ ...dotCircleStyle, position:'relative' }}>
-                <FlexCamera style={{ width:'16px', height:'16px' }} />
-                {!isLoggedIn && <LockBadge />}
+                style={actionButtonStyle}>
+                <div style={{ ...dotCircleStyle, position:'relative' }}>
+                  <FlexCamera style={{ width:'16px', height:'16px' }} />
+                  {!isLoggedIn && <LockBadge />}
+                </div>
+                FLEX
               </div>
             </div>
           )}
@@ -2208,6 +2372,18 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         }
         @keyframes slideInRight {
           from { opacity:0; transform:translateX(24px); }
+          to   { opacity:1; transform:translateX(0); }
+        }
+        @keyframes slideUp {
+          from { opacity:0; transform:translateY(24px); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes slideDown {
+          from { opacity:0; transform:translateY(-100%); }
+          to   { opacity:1; transform:translateY(0); }
+        }
+        @keyframes fadeInLeft {
+          from { opacity:0; transform:translateX(16px); }
           to   { opacity:1; transform:translateX(0); }
         }
         @keyframes slideUpSheet {
