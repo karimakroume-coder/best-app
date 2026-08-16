@@ -1803,31 +1803,36 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           </div>
         </div>
 
-        {/* YOUTUBE LINK — circular play button */}
-        <button
-          onClick={(e) => { e.stopPropagation();
-            window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); }}
-          onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
-            window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); }}
-          style={{
-            position: 'absolute',
-            bottom: '80px',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '52px',
-            height: '52px',
-            borderRadius: '50%',
-            backgroundColor: '#FF0000',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 20,
-            boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
-          }}>
-          <span style={{ color: 'white', fontSize: '20px', marginLeft: '3px' }}>▶</span>
-        </button>
+        {/* YOUTUBE LINK — circular play button. Hidden while the Mandala
+            Control Center is open: it shares screen-bottom-center with the
+            MY 100 ring opening below (see MandalaFrameRings), and WATCH is
+            already reachable from the top profile row in that state. */}
+        {!uiOpen && (
+          <button
+            onClick={(e) => { e.stopPropagation();
+              window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); }}
+            onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
+              window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); }}
+            style={{
+              position: 'absolute',
+              bottom: '80px',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              width: '52px',
+              height: '52px',
+              borderRadius: '50%',
+              backgroundColor: '#FF0000',
+              border: 'none',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 20,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.5)'
+            }}>
+            <span style={{ color: 'white', fontSize: '20px', marginLeft: '3px' }}>▶</span>
+          </button>
+        )}
       </animated.div>
 
       {/* NAVIGATION HINT */}
@@ -1857,9 +1862,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </div>
       )}
 
-      {/* FIREFLAG — tappable prompt while the three dots are open */}
+      {/* FIREFLAG — tappable prompt while the three dots are open. Raised to
+          bottom:120px (instead of the corner) so it clears the FLEX ring
+          opening at bottom:6% — this block only ever renders together with
+          that opening (both gated on the mandala UI being open), and at
+          narrower widths (~360px) their old fixed corner offsets overlapped. */}
       {dotState === 'three' && !isFlagged && (
-        <div style={{ position:'absolute', bottom:'16px', right:'16px', zIndex:9,
+        <div style={{ position:'absolute', bottom:'120px', right:'16px', zIndex:9,
                       display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'6px' }}>
           {fireflagRemaining !== null && (
             <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
@@ -1883,9 +1892,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </div>
       )}
 
-      {/* FIREFLAG — permanent mark once placed */}
+      {/* FIREFLAG — permanent mark once placed. Not gated on dotState, so it
+          can be on screen at the same time as the mandala UI — raise it the
+          same way as the prompt above so it doesn't sit under the FLEX
+          ring opening. */}
       {isFlagged && (
-        <div style={{ position:'absolute', bottom:'16px', right:'16px', zIndex:9 }}>
+        <div style={{ position:'absolute', bottom: uiOpen ? '120px' : '16px', right:'16px', zIndex:9 }}>
           <FireflagIcon
             size={20}
             glow={darkMode}
@@ -1954,7 +1966,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
           {/* PERSONAL BEST — feedback (error / +50 flash) */}
           {dotState === 'three' && (personalBestError || personalBestPointsFlash) && (
-            <div style={{ position:'fixed', bottom:'88px', left:'50%', transform:'translateX(-50%)',
+            <div style={{ position:'fixed', bottom:'170px', left:'50%', transform:'translateX(-50%)',
                           display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', zIndex:156 }}>
               {personalBestPointsFlash && (
                 <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',
@@ -1976,7 +1988,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               menu being open since the menu closes as soon as a photo is
               picked, before the upload (and this feedback) resolves. */}
           {(flexError || flexPointsFlash) && (
-            <div style={{ position:'fixed', bottom:'88px', left:'50%', transform:'translateX(-50%)',
+            <div style={{ position:'fixed', bottom:'170px', left:'50%', transform:'translateX(-50%)',
                           display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', zIndex:156 }}>
               {flexPointsFlash && (
                 <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',

@@ -14,11 +14,7 @@ const RING_INSETS = [0, 6, 12];
 const RING_OPACITIES = [1, 0.55, 0.3];
 const RING_DELAYS_MS = [0, 60, 120];
 
-const OPENING_POSITION = {
-  'bottom-left':   { left: '18%' },
-  'bottom-center': { left: '50%' },
-  'bottom-right':  { left: '82%' },
-};
+const OPENING_ORDER = ['bottom-left', 'bottom-center', 'bottom-right'];
 
 function EdgeRing({ inset, opacity, delayMs, reverse }) {
   const seg = (extra) => ({
@@ -62,20 +58,23 @@ function EdgeRing({ inset, opacity, delayMs, reverse }) {
   );
 }
 
-function Opening({ position, icon, locked, onClick, onTouchEnd, revealed }) {
-  const pos = OPENING_POSITION[position];
-  if (!pos) return null;
+// A plain flex child — no independent position/left/transform-centering of
+// its own. The row container below is what places it on screen, so it can
+// never end up sharing coordinates with a sibling opening (or anything
+// outside the row) the way three individually left:X%-centered fixed divs
+// could at some viewport widths.
+function Opening({ icon, locked, onClick, onTouchEnd, revealed }) {
   return (
     <div
       onClick={onClick}
       onTouchEnd={onTouchEnd}
       style={{
-        position: 'fixed', left: pos.left, bottom: '6%',
+        position: 'relative', flexShrink: 0,
         width: '52px', height: '52px', borderRadius: '50%',
         border: `1.5px solid ${RING_GOLD}`, backgroundColor: 'rgba(13,8,0,0.9)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         pointerEvents: revealed ? 'auto' : 'none', cursor: 'pointer',
-        transform: `translateX(-50%) scale(${revealed ? 1 : 0})`,
+        transform: `scale(${revealed ? 1 : 0})`,
         opacity: revealed ? 1 : 0,
         transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
       }}>
@@ -111,15 +110,30 @@ function MandalaFrameRings({ open, openings = [] }) {
   if (phase === 'closed') return null;
   const revealed = phase === 'open';
 
+  const byPosition = Object.fromEntries(openings.map((op) => [op.position, op]));
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 155, pointerEvents: 'none' }}>
       {RING_INSETS.map((inset, i) => (
         <EdgeRing key={i} inset={inset} opacity={RING_OPACITIES[i]}
                   delayMs={RING_DELAYS_MS[i]} reverse={phase === 'closing'} />
       ))}
-      {openings.map((op) => (
-        <Opening key={op.position} {...op} revealed={revealed} />
-      ))}
+
+      {/* Single flex row — each opening gets its own slot via space-between,
+          instead of three independently left:X%-centered fixed divs that
+          could collide with each other (or with unrelated fixed-position
+          siblings, like the fireflag icon) at some viewport widths. */}
+      <div style={{ position:'fixed', left:0, right:0, bottom:'6%',
+                    display:'flex', justifyContent:'space-between', alignItems:'center',
+                    padding:'0 28px' }}>
+        {OPENING_ORDER.map((position) => {
+          const op = byPosition[position];
+          return op
+            ? <Opening key={position} {...op} revealed={revealed} />
+            : <div key={position} style={{ width:'52px', flexShrink:0 }} />;
+        })}
+      </div>
+
       <style>{`
         @keyframes mandalaRingGrowX {
           from { transform: scaleX(0); }
