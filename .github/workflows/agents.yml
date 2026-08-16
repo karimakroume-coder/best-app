@@ -30,7 +30,5 @@ jobs:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Points at localhost until the BEST backend is deployed to a
-          # reachable host — replace with the deployed URL when available.
-          BEST_API_URL: ${{ secrets.BEST_API_URL || 'http://localhost:8000' }}
+          BEST_API_URL: ${{ secrets.BEST_API_URL || 'https://web-production-a267.up.railway.app' }}
         run: python -m agents.manager
