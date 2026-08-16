@@ -1,0 +1,137 @@
+import React, { useEffect, useRef, useState } from 'react';
+
+// ── MANDALA SCREEN-EDGE ANIMATION ───────────────────────────────────────────
+// Tapping the mandala sends gold concentric rings out along all four screen
+// edges from the bottom-right corner — two fronts (right+top, bottom+left)
+// each covering two edges in the WAVE_MS window, meeting at the top-left
+// corner. Once the frame completes, three circular openings appear along
+// the bottom edge and their icons fade in. Holding the mandala 3s (or any
+// other close path) reverses the same animation — openings close, then the
+// rings converge back into the corner.
+const RING_GOLD = '#C8A951';
+const WAVE_MS = 800;
+const RING_INSETS = [0, 6, 12];
+const RING_OPACITIES = [1, 0.55, 0.3];
+const RING_DELAYS_MS = [0, 60, 120];
+
+const OPENING_POSITION = {
+  'bottom-left':   { left: '18%' },
+  'bottom-center': { left: '50%' },
+  'bottom-right':  { left: '82%' },
+};
+
+function EdgeRing({ inset, opacity, delayMs, reverse }) {
+  const seg = (extra) => ({
+    position: 'fixed', backgroundColor: RING_GOLD, opacity,
+    boxShadow: `0 0 6px ${RING_GOLD}`,
+    animationDuration: `${WAVE_MS / 2}ms`,
+    animationTimingFunction: 'ease-out',
+    animationFillMode: 'both',
+    animationDirection: reverse ? 'reverse' : 'normal',
+    pointerEvents: 'none',
+    ...extra,
+  });
+
+  return (
+    <>
+      {/* bottom edge — grows left from the bottom-right corner */}
+      <div style={seg({
+        right: inset, bottom: inset, left: inset, height: '2px',
+        transformOrigin: 'right center', animationName: 'mandalaRingGrowX',
+        animationDelay: `${delayMs}ms`,
+      })} />
+      {/* right edge — grows up from the bottom-right corner */}
+      <div style={seg({
+        right: inset, bottom: inset, top: inset, width: '2px',
+        transformOrigin: 'center bottom', animationName: 'mandalaRingGrowY',
+        animationDelay: `${delayMs}ms`,
+      })} />
+      {/* top edge — continues the right-edge front once it reaches the top */}
+      <div style={seg({
+        left: inset, right: inset, top: inset, height: '2px',
+        transformOrigin: 'right center', animationName: 'mandalaRingGrowX',
+        animationDelay: `${delayMs + WAVE_MS / 2}ms`,
+      })} />
+      {/* left edge — continues the bottom-edge front once it reaches the left */}
+      <div style={seg({
+        left: inset, top: inset, bottom: inset, width: '2px',
+        transformOrigin: 'center bottom', animationName: 'mandalaRingGrowY',
+        animationDelay: `${delayMs + WAVE_MS / 2}ms`,
+      })} />
+    </>
+  );
+}
+
+function Opening({ position, icon, locked, onClick, onTouchEnd, revealed }) {
+  const pos = OPENING_POSITION[position];
+  if (!pos) return null;
+  return (
+    <div
+      onClick={onClick}
+      onTouchEnd={onTouchEnd}
+      style={{
+        position: 'fixed', left: pos.left, bottom: '6%',
+        width: '52px', height: '52px', borderRadius: '50%',
+        border: `1.5px solid ${RING_GOLD}`, backgroundColor: 'rgba(13,8,0,0.9)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        pointerEvents: revealed ? 'auto' : 'none', cursor: 'pointer',
+        transform: `translateX(-50%) scale(${revealed ? 1 : 0})`,
+        opacity: revealed ? 1 : 0,
+        transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
+      }}>
+      <div style={{ opacity: revealed ? 1 : 0, transition: 'opacity 0.3s ease-out 0.15s' }}>
+        {icon}
+      </div>
+      {locked && (
+        <span style={{ position:'absolute', top:'-4px', right:'-4px', fontSize:'11px',
+                       color:'#C9A84C', textShadow:'0 0 4px rgba(0,0,0,0.9)' }}>🔒</span>
+      )}
+    </div>
+  );
+}
+
+// openings: [{ position: 'bottom-left'|'bottom-center'|'bottom-right', icon, locked, onClick, onTouchEnd }]
+function MandalaFrameRings({ open, openings = [] }) {
+  const [phase, setPhase] = useState(open ? 'open' : 'closed');
+  const prevOpenRef = useRef(open);
+
+  useEffect(() => {
+    if (open === prevOpenRef.current) return;
+    prevOpenRef.current = open;
+    if (open) {
+      setPhase('opening');
+      const t = setTimeout(() => setPhase('open'), WAVE_MS);
+      return () => clearTimeout(t);
+    }
+    setPhase('closing');
+    const t = setTimeout(() => setPhase('closed'), WAVE_MS);
+    return () => clearTimeout(t);
+  }, [open]);
+
+  if (phase === 'closed') return null;
+  const revealed = phase === 'open';
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 155, pointerEvents: 'none' }}>
+      {RING_INSETS.map((inset, i) => (
+        <EdgeRing key={i} inset={inset} opacity={RING_OPACITIES[i]}
+                  delayMs={RING_DELAYS_MS[i]} reverse={phase === 'closing'} />
+      ))}
+      {openings.map((op) => (
+        <Opening key={op.position} {...op} revealed={revealed} />
+      ))}
+      <style>{`
+        @keyframes mandalaRingGrowX {
+          from { transform: scaleX(0); }
+          to   { transform: scaleX(1); }
+        }
+        @keyframes mandalaRingGrowY {
+          from { transform: scaleY(0); }
+          to   { transform: scaleY(1); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+export default MandalaFrameRings;
