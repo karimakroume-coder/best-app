@@ -328,6 +328,21 @@ def list_flexes(video_id: str):
     result = client.table("flex_comments").select("*").eq("video_id", video_id).order("placed_at", desc=True).limit(50).execute()
     return {"video_id": video_id, "count": len(result.data), "flexes": result.data}
 
+@app.get("/fireflag/remaining/{user_id}")
+def get_fireflag_remaining(user_id: str):
+    client = get_client()
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    weekly = client.table("fireflags").select("id", count="exact") \
+        .eq("user_id", user_id).gte("placed_at", week_ago).execute()
+    weekly_used = weekly.count or 0
+    weekly_remaining = max(0, 10 - weekly_used)
+    active = client.table("fireflags").select("id", count="exact") \
+        .eq("user_id", user_id).eq("is_active", True).execute()
+    active_count = active.count or 0
+    active_remaining = max(0, 20 - active_count)
+    return {"weekly_remaining": weekly_remaining, "active_remaining": active_remaining, "remaining": weekly_remaining, "can_place": weekly_remaining > 0 and active_remaining > 0}
+
+
 # ── HUNT GAME ───────────────────────────────────────────────────────────────
 
 @app.get("/hunt/daily")

@@ -58,12 +58,16 @@ function Rankings() {
     const email = localStorage.getItem('best_email');
     const token = localStorage.getItem('best_token');
     if (email) setUserEmail(email);
-    if (token) {
+    if (!token) return;
+    const fetchScore = () => {
       axios.get('https://web-production-a267.up.railway.app/user/profile', {
         headers: { Authorization: `Bearer ${token}` }
       }).then(res => setDiscoveryScore(res.data.discovery_score))
         .catch(() => {});
-    }
+    };
+    fetchScore();
+    const interval = setInterval(fetchScore, 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {

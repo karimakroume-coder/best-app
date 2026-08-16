@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 const BASE_COLORS = [
   { name: 'red',    hex: '#E74C3C', label: 'RED' },
@@ -10,6 +10,18 @@ const BASE_COLORS = [
   { name: 'gold',   hex: '#C9A84C', label: 'GOLD' },
 ];
 
+function getOrderedColors() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('colorRanking'));
+    if (Array.isArray(saved) && saved.length === BASE_COLORS.length) {
+      const byName = Object.fromEntries(BASE_COLORS.map(c => [c.name, c]));
+      const ordered = saved.map(n => byName[n]).filter(Boolean);
+      if (ordered.length === BASE_COLORS.length) return ordered;
+    }
+  } catch {}
+  return BASE_COLORS;
+}
+
 // The actual backend assignment (with word + snapshot) happens later in
 // SpatialMap's Mark flow, once the Strip keyboard word and snapshot exist —
 // this only picks the color and hands it off via onColorSelected.
@@ -17,9 +29,9 @@ function ColorWheel({ onColorSelected, discoveryScore = 0 }) {
   const [selected, setSelected] = useState(null);
   const [hovering, setHovering] = useState(null);
 
-  const COLORS = BASE_COLORS.map(c =>
+  const COLORS = useMemo(() => getOrderedColors().map(c =>
     c.name === 'gold' ? { ...c, locked: (discoveryScore || 0) < 500 } : c
-  );
+  ), [discoveryScore]);
 
   const handleColorClick = (e, color) => {
     if (color.locked) return;

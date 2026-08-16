@@ -323,6 +323,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [regSheetOpen, setRegSheetOpen] = useState(false);
   const [huntTargetRank, setHuntTargetRank] = useState(null);
   const [huntDiscovered, setHuntDiscovered] = useState(false);
+  const [huntDate, setHuntDate] = useState(null);
+  const [huntTargetVid, setHuntTargetVid] = useState(null);
   const [colorDistributions, setColorDistributions] = useState({});
   const [uiOpen, setUiOpen] = useState(false);
   const [transitioning, setTransitioning] = useState(false);
@@ -379,11 +381,26 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
   useEffect(() => {
     if (huntActive && totalRanks > 0) {
-      setHuntTargetRank(Math.floor(Math.random() * totalRanks) + 1);
       setHuntDiscovered(false);
+      axios.get('https://web-production-a267.up.railway.app/hunt/daily')
+        .then(res => {
+          const targetVid = res.data.video_id;
+          const targetDate = res.data.date;
+          setHuntTargetVid(targetVid);
+          setHuntDate(targetDate);
+          const idx = activeRankings.findIndex(r => r.video_id === targetVid);
+          setHuntTargetRank(idx >= 0 ? idx + 1 : Math.floor(Math.random() * totalRanks) + 1);
+        })
+        .catch(() => {
+          setHuntTargetRank(Math.floor(Math.random() * totalRanks) + 1);
+          setHuntTargetVid(null);
+          setHuntDate(null);
+        });
     } else if (!huntActive) {
       setHuntTargetRank(null);
       setHuntDiscovered(false);
+      setHuntTargetVid(null);
+      setHuntDate(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [huntActive]);
@@ -391,10 +408,15 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   useEffect(() => {
     if (huntActive && huntTargetRank && currentRank === huntTargetRank && !huntDiscovered) {
       setHuntDiscovered(true);
+      if (huntTargetVid && huntDate && userId) {
+        axios.post('https://web-production-a267.up.railway.app/hunt/found', {
+          user_id: userId, video_id: huntTargetVid, date: huntDate
+        }).catch(() => {});
+      }
       const t = setTimeout(() => { if (onHuntComplete) onHuntComplete(); }, 1400);
       return () => clearTimeout(t);
     }
-  }, [huntActive, huntTargetRank, currentRank, huntDiscovered, onHuntComplete]);
+  }, [huntActive, huntTargetRank, currentRank, huntDiscovered, onHuntComplete, huntTargetVid, huntDate, userId]);
 
   // ── COLOR DISTRIBUTION BAR (single card view) ───────────────────────────
   // Fetched once per video and cached so navigating back to a card is instant.
@@ -1701,7 +1723,28 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         <div style={{ position:'absolute', bottom:'120px', right:'24px', zIndex:10 }}>
 
           {dotState === 'single' && (
-            <MandalaButton onClick={() => { setDotState('three'); setUiOpen(true); if (onUIStateChange) onUIStateChange(true); }} />
+            <>
+              <MandalaButton onClick={() => { setDotState('three'); setUiOpen(true); if (onUIStateChange) onUIStateChange(true); }} />
+              {discoveryScore > 0 && (() => {
+                const milestones = [[100,'EXPLORER'],[200,'SCOUT'],[500,'GOLD'],[750,'LEGEND'],[1000,'ORACLE']];
+                const next = milestones.find(([t]) => discoveryScore < t);
+                if (!next) return null;
+                const [threshold, label] = next;
+                const prev = [...milestones].reverse().find(([t]) => discoveryScore >= t);
+                const floor = prev ? prev[0] : 0;
+                const pct = Math.min(100, Math.round(((discoveryScore - floor) / (threshold - floor)) * 100));
+                return (
+                  <div style={{ marginTop:'8px', width:'48px', textAlign:'center' }}>
+                    <div style={{ height:'3px', backgroundColor:'#1A1A1A', borderRadius:'2px', overflow:'hidden', marginBottom:'3px' }}>
+                      <div style={{ height:'100%', width:`${pct}%`, backgroundColor:'#C8A951', transition:'width 0.5s ease' }} />
+                    </div>
+                    <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951', fontSize:'7px', letterSpacing:'1px' }}>
+                      {label} {discoveryScore}/{threshold}
+                    </span>
+                  </div>
+                );
+              })()}
+            </>
           )}
 
           {dotState === 'three' && (
