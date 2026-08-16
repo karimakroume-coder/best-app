@@ -29,6 +29,7 @@ CATEGORY_IDS = {"music":"10","gaming":"20","sports":"17","entertainment":"24","p
 class AuthRequest(BaseModel):
     email: str
     password: str
+    name: str | None = None
 
 class FlexPlaceRequest(BaseModel):
     user_id: str
@@ -46,10 +47,11 @@ def register(req: AuthRequest):
         client = get_client()
         result = client.auth.sign_up({"email": req.email, "password": req.password})
         user_id = result.user.id
+        username = req.name if req.name else req.email.split("@")[0]
         client.table("users").insert({
             "user_id": user_id,
             "email": req.email,
-            "username": req.email.split("@")[0],
+            "username": username,
             "discovery_score": 0,
             "badge_tier": "none",
             "fireflag_count": 0,
@@ -58,6 +60,9 @@ def register(req: AuthRequest):
         token = create_access_token({"sub": user_id, "email": req.email})
         return {"user_id": user_id, "access_token": token, "message": "User registered successfully"}
     except Exception as e:
+        error_str = str(e).lower()
+        if "already" in error_str or "exists" in error_str or "duplicate" in error_str:
+            return login(AuthRequest(email=req.email, password=req.password))
         raise HTTPException(status_code=400, detail=str(e))
 
 @app.post("/auth/login")
@@ -67,7 +72,7 @@ def login(req: AuthRequest):
         result = client.auth.sign_in_with_password({"email": req.email, "password": req.password})
         user_id = result.user.id
         token = create_access_token({"sub": user_id, "email": req.email})
-        return {"access_token": token, "message": "Login successful"}
+        return {"access_token": token, "user_id": user_id, "message": "Login successful"}
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 

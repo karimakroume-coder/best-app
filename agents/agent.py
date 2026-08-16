@@ -42,47 +42,38 @@ class BESTAgent:
         self.token = None
         self.user_id = None
 
-    def login(self) -> bool:
-        try:
-            res = requests.post(f"{BEST_API}/auth/login", json={
-                "email": self.email,
-                "password": "BESTAgent2026!"
-            }, timeout=10)
-            if res.status_code == 200:
-                self.token = res.json()["access_token"]
-                return True
-            return False
-        except Exception as e:
-            print(f"  {self.name} login error: {e}")
-            return False
-
     def register(self) -> bool:
         try:
             res = requests.post(f"{BEST_API}/auth/register", json={
                 "email": self.email,
-                "password": "BESTAgent2026!"
-            }, timeout=10)
+                "password": "BESTAgent2026!",
+                "name": self.name
+            }, timeout=15)
             if res.status_code == 200:
                 data = res.json()
-                self.token = data["access_token"]
-                self.user_id = data["user_id"]
-                return True
+                self.token = data.get("access_token")
+                self.user_id = data.get("user_id")
+                return bool(self.token)
             return False
         except Exception as e:
             print(f"  {self.name} register error: {e}")
             return False
 
-    def get_user_id_from_token(self):
+    def login(self) -> bool:
         try:
-            res = requests.get(
-                f"{BEST_API}/user/profile",
-                headers={"Authorization": f"Bearer {self.token}"},
-                timeout=10
-            )
+            res = requests.post(f"{BEST_API}/auth/login", json={
+                "email": self.email,
+                "password": "BESTAgent2026!"
+            }, timeout=15)
             if res.status_code == 200:
-                self.user_id = res.json().get("user_id")
-        except Exception:
-            pass
+                data = res.json()
+                self.token = data.get("access_token")
+                self.user_id = data.get("user_id")
+                return bool(self.token)
+            return False
+        except Exception as e:
+            print(f"  {self.name} login error: {e}")
+            return False
 
     def get_rankings(self) -> list:
         try:
@@ -175,6 +166,7 @@ Color must be one of: red, blue, green, yellow, black, white"""
                     "color": color,
                     "word": word
                 },
+                headers={"Authorization": f"Bearer {self.token}"} if self.token else {},
                 timeout=10
             )
             return res.status_code == 200
@@ -191,6 +183,7 @@ Color must be one of: red, blue, green, yellow, black, white"""
                     "video_id": video_id,
                     "flag_type": "amber"
                 },
+                headers={"Authorization": f"Bearer {self.token}"} if self.token else {},
                 timeout=10
             )
             return res.status_code == 200
@@ -202,17 +195,14 @@ Color must be one of: red, blue, green, yellow, black, white"""
         print(f"\n[{datetime.now().strftime('%H:%M:%S')}] "
               f"{self.name} ({self.profile['region']}) starting session...")
 
-        if not self.login():
-            print(f"  {self.name} login failed — trying register...")
-            if not self.register():
+        if not self.register():
+            print(f"  {self.name} register failed — trying login...")
+            if not self.login():
                 print(f"  {self.name} could not authenticate. Skipping.")
                 return
 
         if not self.user_id:
-            self.get_user_id_from_token()
-
-        if not self.user_id:
-            print(f"  {self.name} could not get user_id. Skipping.")
+            print(f"  {self.name} has no user_id after auth. Skipping.")
             return
 
         rankings = self.get_rankings()
