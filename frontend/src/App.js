@@ -4,6 +4,7 @@ import axios from 'axios';
 import Login from './Login';
 import Register from './Register';
 import SpatialMap from './SpatialMap';
+import BNavigation from './BNavigation';
 import ColorOnboarding from './ColorOnboarding';
 import PersonalBest from './PersonalBest';
 import Countdown from './Countdown';
@@ -31,6 +32,8 @@ function Rankings() {
   const [darkMode, setDarkMode]               = useState(false);
   const [huntActive, setHuntActive]           = useState(false);
   const [showOnboarding, setShowOnboarding]   = useState(false);
+  const [currentMap, setCurrentMap]           = useState('world-best');
+  const [uiOpen, setUiOpen]                  = useState(false);
 
   const checkColorOnboarding = () => {
     if (!localStorage.getItem('colorRanking')) {
@@ -226,6 +229,9 @@ function Rankings() {
             darkMode={darkMode}
             huntActive={huntActive}
             discoveryScore={discoveryScore ?? 0}
+            currentMap={currentMap}
+            setCurrentMap={setCurrentMap}
+            onUIStateChange={setUiOpen}
             onPersonalBestAdded={() => {
               setDiscoveryScore(prev => prev !== null ? prev + 50 : 50);
             }}
@@ -244,6 +250,11 @@ function Rankings() {
           />
         </div>
       )}
+      <BNavigation
+        currentMap={currentMap}
+        setCurrentMap={setCurrentMap}
+        uiOpen={uiOpen}
+      />
       {showOnboarding && <ColorOnboarding onComplete={() => setShowOnboarding(false)} />}
     </div>
   );

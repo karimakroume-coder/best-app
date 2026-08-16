@@ -271,8 +271,8 @@ function WhisperCard({ coordKey }) {
   );
 }
 
-function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, onBeforeColor, darkMode, huntActive, onHuntComplete, onHuntStop, discoveryScore = 0 }) {
-  console.log('SpatialMap rankings prop:', rankings?.length);
+function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, onFlexPlaced, onBeforeColor, darkMode, huntActive, onHuntComplete, onHuntStop, discoveryScore = 0, currentMap, setCurrentMap, onUIStateChange }) {
+  console.log('SpatialMap active rankings:', activeRankings?.length, 'map:', currentMap);
 
   const [currentX, setCurrentX]               = useState(0);
   const [currentY, setCurrentY]                = useState(0);
@@ -304,6 +304,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [huntTargetRank, setHuntTargetRank] = useState(null);
   const [huntDiscovered, setHuntDiscovered] = useState(false);
   const [colorDistributions, setColorDistributions] = useState({});
+  const [uiOpen, setUiOpen] = useState(false);
+  const [transitioning, setTransitioning] = useState(false);
+  const [transitionPhase, setTransitionPhase] = useState('');
+  const [pbRankings, setPbRankings] = useState([]);
 
   // ── PROGRESSIVE REGISTRATION GATE ────────────────────────────────────────
   const isLoggedIn = !!(userId || localStorage.getItem('best_token'));
@@ -324,7 +328,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const flexCanvasRef = useRef(null);
   const flexStreamRef = useRef(null);
 
-  const totalRanks = rankings.length;
+  // ── ACTIVE RANKINGS — depends on which map is selected ─────────────────
+  const activeRankings = currentMap === 'my-best' ? pbRankings : rankings;
+  const totalRanks = activeRankings.length;
 
   const { rankToCoord, coordToRank } = useMemo(
     () => buildSpiralCoords(totalRanks),
@@ -332,10 +338,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   );
 
   const currentRank  = coordToRank[`${currentX},${currentY}`];
-  const currentVideo = currentRank ? rankings[currentRank - 1] : null;
+  const currentVideo = currentRank ? activeRankings[currentRank - 1] : null;
 
   // ── HUNT GAME ─────────────────────────────────────────────────────────────
-  const huntTargetVideo = huntTargetRank ? rankings[huntTargetRank - 1] : null;
+  const huntTargetVideo = huntTargetRank ? activeRankings[huntTargetRank - 1] : null;
   const huntTargetCoord = huntTargetRank ? rankToCoord[huntTargetRank] : null;
   const huntAngle = huntTargetCoord
     ? Math.atan2(huntTargetCoord.x - currentX, huntTargetCoord.y - currentY) * (180 / Math.PI)
@@ -379,7 +385,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   // Top-50 cards with both their permanent grid position and their target
   // letter position, normalized into the same 0-100% screen space.
   const gridLetterData = useMemo(() => {
-    const top = rankings.slice(0, 50);
+    const top = activeRankings.slice(0, 50);
     if (top.length === 0) return [];
     let maxAbs = 1;
     top.forEach(v => {
@@ -393,7 +399,66 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       const letter = letterPositionForIndex(i);
       return { video: v, grid, letter: letter || grid };
     });
-  }, [rankings, rankToCoord]);
+  }, [activeRankings, rankToCoord]);
+
+  // ── UI OPEN STATE — report to parent for BNavigation visibility ────────
+  const toggleUi = useCallback(() => {
+    setUiOpen(prev => {
+      const next = !prev;
+      if (onUIStateChange) onUIStateChange(next);
+      return next;
+    });
+  }, [onUIStateChange]);
+
+  // ── PERSONAL BEST DATA — fetch when my-best map is active ─────────────
+  useEffect(() => {
+    if (currentMap !== 'my-best' || !userId) { setPbRankings([]); return; }
+    let cancelled = false;
+    const API = 'https://web-production-a267.up.railway.app';
+    Promise.all([
+      axios.get(`${API}/personal-best/${userId}`),
+      axios.get(`${API}/ranking/global`),
+    ]).then(([pbRes, globalRes]) => {
+      if (cancelled) return;
+      const details = {};
+      (globalRes.data || []).forEach(v => { details[v.video_id] = v; });
+      const merged = (pbRes.data || [])
+        .map((row, i) => {
+          const video = details[row.video_id] || {};
+          return {
+            ...video,
+            ...row,
+            rank: row.rank_at_add || (i + 1),
+            total_score: row.score_at_add || video.total_score || 0,
+          };
+        });
+      setPbRankings(merged);
+    }).catch(() => { if (!cancelled) setPbRankings([]); });
+    return () => { cancelled = true; };
+  }, [currentMap, userId]);
+
+  // ── CINEMATIC MAP TRANSITION ──────────────────────────────────────────
+  // Detects currentMap changes from outside and triggers the transition sequence.
+  const prevMapRef = useRef(currentMap);
+  useEffect(() => {
+    if (prevMapRef.current !== currentMap && !transitioning) {
+      setTransitioning(true);
+      setTransitionPhase('exit');
+    }
+    prevMapRef.current = currentMap;
+  }, [currentMap, transitioning]);
+
+  useEffect(() => {
+    if (!transitioning) return;
+    const exitTimer = setTimeout(() => setTransitionPhase('logo'), 400);
+    const logoTimer = setTimeout(() => setTransitionPhase('enter'), 700);
+    const enterTimer = setTimeout(() => {
+      setTransitionPhase('');
+      setTransitioning(false);
+      playDropAnimation(Math.floor(Math.random() * Math.max(activeRankings.length, 1)) + 1);
+    }, 1100);
+    return () => { clearTimeout(exitTimer); clearTimeout(logoTimer); clearTimeout(enterTimer); };
+  }, [transitioning, playDropAnimation, activeRankings.length]);
 
   // ── DOT FADE TIMER ──────────────────────────────────────────────────────
   useEffect(() => {
@@ -751,7 +816,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     } else if (absX < 10 && absY < 10) {
       // Tap — reveal the dot UI, or collapse the open panel back to the dot.
       if (dotState === 'hidden') setDotState('single');
-      else if (dotState === 'three') setDotState('single');
+      else if (dotState === 'three') { setDotState('single'); setUiOpen(false); if (onUIStateChange) onUIStateChange(false); }
     }
   }, [markStage, currentX, currentY, navigateToCoord, dotState, resetFocusTimer]);
 
@@ -1019,7 +1084,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     </div>
   );
 
-  if (!rankings || rankings.length === 0) {
+  if (!activeRankings || activeRankings.length === 0) {
     return (
       <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
                     display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -1030,9 +1095,97 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     );
   }
 
+  // ── MAP PLACEHOLDERS ──────────────────────────────────────────────────
+  if (currentMap === 'best-map') {
+    return (
+      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#000000',
+                    display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', animation: transitionPhase === 'enter' ? 'mapEnter 0.4s ease' : 'none',
+                    opacity: transitionPhase === 'exit' ? 0 : 1,
+                    transition: transitionPhase === 'exit' ? 'opacity 0.4s ease' : 'none' }}>
+        <div style={{ fontFamily:'Pacifico, cursive', color:'#C8A951',
+                      fontSize:'clamp(28px,7vw,56px)', marginBottom:'16px',
+                      textShadow:'0 0 30px rgba(201,168,76,0.3)' }}>
+          BEST MAP
+        </div>
+        <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#555',
+                      fontSize:'12px', letterSpacing:'3px' }}>
+          Coming soon — claim your coordinate
+        </div>
+        <style>{`
+          @keyframes mapEnter { from { opacity:0; transform:scale(1.05); } to { opacity:1; transform:scale(1); } }
+        `}</style>
+      </div>
+    );
+  }
+  if (currentMap === 'crew-best') {
+    return (
+      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
+                    display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', animation: transitionPhase === 'enter' ? 'mapEnter 0.4s ease' : 'none',
+                    opacity: transitionPhase === 'exit' ? 0 : 1,
+                    transition: transitionPhase === 'exit' ? 'opacity 0.4s ease' : 'none' }}>
+        <div style={{ fontFamily:'Pacifico, cursive', color:'#CD7F32',
+                      fontSize:'clamp(28px,7vw,56px)', marginBottom:'16px',
+                      textShadow:'0 0 30px rgba(205,127,50,0.3)' }}>
+          CREW BEST
+        </div>
+        <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#555',
+                      fontSize:'12px', letterSpacing:'3px' }}>
+          Create your crew in Phase 2
+        </div>
+        <style>{`
+          @keyframes mapEnter { from { opacity:0; transform:scale(1.05); } to { opacity:1; transform:scale(1); } }
+        `}</style>
+      </div>
+    );
+  }
+  if (currentMap === 'crown') {
+    return (
+      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
+                    display:'flex', flexDirection:'column', alignItems:'center',
+                    justifyContent:'center', animation: transitionPhase === 'enter' ? 'mapEnter 0.4s ease' : 'none',
+                    opacity: transitionPhase === 'exit' ? 0 : 1,
+                    transition: transitionPhase === 'exit' ? 'opacity 0.4s ease' : 'none' }}>
+        <div style={{ fontSize:'64px', marginBottom:'16px' }}>👑</div>
+        <div style={{ fontFamily:'Pacifico, cursive', color:'#C8A951',
+                      fontSize:'clamp(28px,7vw,56px)', marginBottom:'16px',
+                      textShadow:'0 0 30px rgba(201,168,76,0.3)' }}>
+          CROWN
+        </div>
+        <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#555',
+                      fontSize:'12px', letterSpacing:'3px' }}>
+          Next CROWN opens March 2027
+        </div>
+        <style>{`
+          @keyframes mapEnter { from { opacity:0; transform:scale(1.05); } to { opacity:1; transform:scale(1); } }
+        `}</style>
+      </div>
+    );
+  }
+
+  // ── CINEMATIC MAP TRANSITION OVERLAY ──────────────────────────────────
+  if (transitionPhase === 'logo') {
+    return (
+      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#000000',
+                    display:'flex', alignItems:'center', justifyContent:'center',
+                    position:'fixed', inset:0, zIndex:200 }}>
+        <div style={{ fontFamily:'Pacifico, cursive', color:'#C8A951',
+                      fontSize:'clamp(28px,7vw,56px)',
+                      textShadow:'0 0 40px #C9A84C',
+                      animation:'logoFlash 0.3s ease' }}>
+          BEST
+        </div>
+        <style>{`
+          @keyframes logoFlash { from { opacity:0; transform:scale(0.8); } to { opacity:1; transform:scale(1); } }
+        `}</style>
+      </div>
+    );
+  }
+
   // ── DROP ANIMATION OVERLAY ───────────────────────────────────────────────
   if (isDropping) {
-    const dropVideo = dropTargetRank ? rankings[dropTargetRank - 1] : null;
+    const dropVideo = dropTargetRank ? activeRankings[dropTargetRank - 1] : null;
     return (
       <div style={{ width:'100vw', height:'100vh', backgroundColor:bgColor, position:'relative', overflow:'hidden' }}>
         <animated.div style={{
@@ -1106,7 +1259,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           const isCenter = dx === 0 && dy === 0;
           const cellX = currentX + dx, cellY = currentY + dy;
           const rank = coordToRank[`${cellX},${cellY}`];
-          const v = rank ? rankings[rank - 1] : null;
+          const v = rank ? activeRankings[rank - 1] : null;
           const isEmpty = !v || !v.video_id;
           console.log('card', idx, 'video:', v?.video_id, 'isEmpty:', isEmpty);
           const flagged = v && !!fireflaggedVideos[v.video_id];
@@ -1449,7 +1602,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         <div style={{ position:'absolute', bottom:'120px', right:'24px', zIndex:10 }}>
 
           {dotState === 'single' && (
-            <MandalaButton onClick={() => setDotState('three')} />
+            <MandalaButton onClick={() => { setDotState('three'); setUiOpen(true); if (onUIStateChange) onUIStateChange(true); }} />
           )}
 
           {dotState === 'three' && (
@@ -1927,6 +2080,18 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         @keyframes regSheetUp {
           from { transform:translateY(100%); }
           to   { transform:translateY(0); }
+        }
+        @keyframes mapExit {
+          from { opacity:1; transform:scale(1); }
+          to   { opacity:0; transform:scale(0.95); }
+        }
+        @keyframes mapEnter {
+          from { opacity:0; transform:scale(1.05); }
+          to   { opacity:1; transform:scale(1); }
+        }
+        @keyframes logoFlash {
+          from { opacity:0; transform:scale(0.8); }
+          to   { opacity:1; transform:scale(1); }
         }
       `}</style>
     </div>
