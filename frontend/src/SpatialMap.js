@@ -12,6 +12,8 @@ import { ReactComponent as FlexCamera } from './assets/icons/flex-camera.svg';
 import MandalaButton from './MandalaButton';
 import MandalaFrameRings from './MandalaFrameRings';
 import CrewBest from './CrewBest';
+import BestMap from './BestMap';
+import WhisperCard from './WhisperCard';
 
 const RANK_STYLES = {
   1:  { color: '#C9A84C', fontSize: '72px', fontWeight: 'bold' },
@@ -232,71 +234,6 @@ function LockBadge() {
                    fontSize:'11px', color:'#C9A84C',
                    textShadow:'0 0 4px rgba(0,0,0,0.9)',
                    pointerEvents:'none', zIndex:2 }}>🔒</span>
-  );
-}
-
-// ── WHISPER SYSTEM (Map 2 empty coordinates) ───────────────────────────────
-// Empty cards on the permanent grid breathe and whisper in the visitor's
-// language, coaxing a creator to claim the spot. Visits are counted per
-// coordinate in localStorage; after 5 visits the whisper goes silent and a
-// gold "claimable" dot takes its place.
-const WHISPERS = {
-  ar: ["أعطها", "هذا المكان ينتظرك"],
-  pt: ["alimente isso", "este lugar é seu"],
-  ko: ["채워줘", "여기 무언가 살아야 해"],
-  fr: ["nourris-le", "cet endroit t'attend"],
-  default: ["feed it", "this place is waiting", "something should live here"],
-};
-
-function getWhisperPhrases() {
-  const lang = (navigator.language || 'en').slice(0, 2);
-  return WHISPERS[lang] || WHISPERS.default;
-}
-
-const WHISPER_VISIT_LIMIT = 5;
-
-function WhisperCard({ coordKey }) {
-  const [visits, setVisits] = useState(0);
-  const [showWhisper, setShowWhisper] = useState(false);
-  const phraseRef = useRef(null);
-  if (phraseRef.current === null) {
-    const phrases = getWhisperPhrases();
-    phraseRef.current = phrases[Math.floor(Math.random() * phrases.length)];
-  }
-
-  useEffect(() => {
-    const key = `best_whisper_visits_${coordKey}`;
-    const prev = parseInt(localStorage.getItem(key) || '0', 10);
-    const next = prev + 1;
-    localStorage.setItem(key, String(next));
-    setVisits(next);
-    setShowWhisper(false);
-  }, [coordKey]);
-
-  useEffect(() => {
-    if (visits >= WHISPER_VISIT_LIMIT) return;
-    const t = setTimeout(() => setShowWhisper(true), 2000);
-    return () => clearTimeout(t);
-  }, [visits]);
-
-  const silent = visits >= WHISPER_VISIT_LIMIT;
-
-  return (
-    <div style={{ position:'relative', width:'100%', height:'100%',
-                  backgroundColor:'#000000', display:'flex',
-                  alignItems:'center', justifyContent:'center',
-                  animation: silent ? 'none' : 'cardBreathe 4s ease-in-out infinite' }}>
-      {silent ? (
-        <div style={{ width:'8px', height:'8px', borderRadius:'50%',
-                      backgroundColor:'#C9A84C', boxShadow:'0 0 12px #C9A84C' }} />
-      ) : showWhisper ? (
-        <div style={{ color:'#3A3A3A', fontSize:'10px', letterSpacing:'1px',
-                      textAlign:'center', padding:'0 8px',
-                      animation:'whisperFadeIn 1.5s ease' }}>
-          {phraseRef.current}
-        </div>
-      ) : null}
-    </div>
   );
 }
 
@@ -1208,24 +1145,11 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   // ── MAP PLACEHOLDERS ──────────────────────────────────────────────────
   if (currentMap === 'best-map') {
     return (
-      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#000000',
-                    display:'flex', flexDirection:'column', alignItems:'center',
-                    justifyContent:'center', animation: transitionPhase === 'enter' ? 'mapEnter 0.4s ease' : 'none',
-                    opacity: transitionPhase === 'exit' ? 0 : 1,
-                    transition: transitionPhase === 'exit' ? 'opacity 0.4s ease' : 'none' }}>
-        <div style={{ fontFamily:'Pacifico, cursive', color:'#C8A951',
-                      fontSize:'clamp(28px,7vw,56px)', marginBottom:'16px',
-                      textShadow:'0 0 30px rgba(201,168,76,0.3)' }}>
-          BEST MAP
-        </div>
-        <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#555',
-                      fontSize:'12px', letterSpacing:'3px' }}>
-          Coming soon — claim your coordinate
-        </div>
-        <style>{`
-          @keyframes mapEnter { from { opacity:0; transform:scale(1.05); } to { opacity:1; transform:scale(1); } }
-        `}</style>
-      </div>
+      <BestMap
+        rankings={rankings}
+        transitionPhase={transitionPhase}
+        setCurrentMap={setCurrentMap}
+      />
     );
   }
   if (currentMap === 'crew-best') {
