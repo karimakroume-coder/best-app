@@ -14,6 +14,7 @@ import MandalaFrameRings from './MandalaFrameRings';
 import CrewBest from './CrewBest';
 import BestMap from './BestMap';
 import WhisperCard from './WhisperCard';
+import Crown from './Crown';
 
 const RANK_STYLES = {
   1:  { color: '#C9A84C', fontSize: '72px', fontWeight: 'bold' },
@@ -1163,25 +1164,11 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   }
   if (currentMap === 'crown') {
     return (
-      <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
-                    display:'flex', flexDirection:'column', alignItems:'center',
-                    justifyContent:'center', animation: transitionPhase === 'enter' ? 'mapEnter 0.4s ease' : 'none',
-                    opacity: transitionPhase === 'exit' ? 0 : 1,
-                    transition: transitionPhase === 'exit' ? 'opacity 0.4s ease' : 'none' }}>
-        <div style={{ fontSize:'64px', marginBottom:'16px' }}>👑</div>
-        <div style={{ fontFamily:'Pacifico, cursive', color:'#C8A951',
-                      fontSize:'clamp(28px,7vw,56px)', marginBottom:'16px',
-                      textShadow:'0 0 30px rgba(201,168,76,0.3)' }}>
-          CROWN
-        </div>
-        <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#555',
-                      fontSize:'12px', letterSpacing:'3px' }}>
-          Next CROWN opens March 2027
-        </div>
-        <style>{`
-          @keyframes mapEnter { from { opacity:0; transform:scale(1.05); } to { opacity:1; transform:scale(1); } }
-        `}</style>
-      </div>
+      <Crown
+        transitionPhase={transitionPhase}
+        setCurrentMap={setCurrentMap}
+        discoveryScore={discoveryScore}
+      />
     );
   }
 
