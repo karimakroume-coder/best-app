@@ -1,38 +1,117 @@
 import React from 'react';
 
-// HeaderCrest — small vintage "BEST" monogram that sits top-left in the
-// SpatialMap header when the mandala UI is open. Just the brand mark —
-// no interactivity, no backend calls.
+// HeaderCrest - B crest button (map navigation trigger) + VAULT pill label.
+// Visual direction: gold medallion / Cinzel authoritative feel (AI Studio
+// mockup), rendered with BEST's existing vintage gold/cream/dark palette.
+// No dependency on any mockup code. Cinzel is referenced with serif fallbacks
+// so it degrades gracefully if the host app hasn't loaded the webfont yet.
+//
+// Usage (Claude Code wires these into the header/profile area):
+//   import HeaderCrest, { CrestButton, VaultPill } from './HeaderCrest';
+//   <CrestButton currentMap={currentMap} setCurrentMap={setCurrentMap} />
+//   <VaultPill currentMap={currentMap} />
+//   <HeaderCrest currentMap={currentMap} setCurrentMap={setCurrentMap} />
 
-function HeaderCrest({ style }) {
+const GOLD = '#C9A84C';
+const GOLD_DARK = '#C8A951';
+const CREAM = '#F5E6C8';
+const DARK = '#0D0800';
+const SERIF = "'Cinzel', Georgia, 'Times New Roman', serif";
+const SANS = "'Bebas Neue', sans-serif";
+const SCRIPT = "'Pacifico', cursive";
+
+const MAP_LABELS = {
+  'world-best': 'WORLD BEST',
+  'best-map': 'BEST MAP',
+  'my-best': 'MY BEST',
+  'crew-best': 'CREW BEST',
+  'crown': 'CROWN',
+};
+
+function Medallion({ size = 44, glyph = 'B', glyphFont = SERIF, glyphSize }) {
+  const gs = glyphSize || Math.round(size * 0.46);
+  return (
+    <div style={{
+      width: size, height: size, borderRadius: '50%', position: 'relative',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'radial-gradient(circle at 32% 28%, #F5E6C8 0%, #C9A84C 40%, #8B6914 100%)',
+      boxShadow: '0 0 14px rgba(201,168,76,0.45), inset 0 0 6px rgba(0,0,0,0.45)',
+    }}>
+      <div style={{
+        position: 'absolute', inset: Math.round(size * 0.16), borderRadius: '50%',
+        border: '1px solid rgba(13,8,0,0.55)',
+      }} />
+      {[0, 45, 90, 135, 180, 225, 270, 315].map(deg => (
+        <div key={deg} style={{
+          position: 'absolute', width: '2px', height: Math.round(size * 0.07),
+          backgroundColor: 'rgba(13,8,0,0.5)',
+          transform: `rotate(${deg}deg) translateY(-${Math.round(size * 0.43)}px)`,
+        }} />
+      ))}
+      <span style={{
+        fontFamily: glyphFont, color: DARK, fontSize: gs, lineHeight: 1,
+        fontWeight: 700, textShadow: '0 1px 0 rgba(245,230,200,0.4)',
+      }}>
+        {glyph}
+      </span>
+    </div>
+  );
+}
+
+export function CrestButton({ currentMap = 'world-best', setCurrentMap, onOpenNav, size = 44 }) {
+  const label = MAP_LABELS[currentMap] || 'WORLD BEST';
+  const handleClick = () => {
+    if (onOpenNav) { onOpenNav(); return; }
+    if (setCurrentMap) {
+      setCurrentMap(currentMap === 'world-best' ? 'best-map' : 'world-best');
+    }
+  };
+  return (
+    <button
+      onClick={handleClick}
+      title={`Navigate maps - current: ${label}`}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+        backgroundColor: 'transparent', border: 'none', cursor: 'pointer', padding: 0,
+      }}>
+      <Medallion size={size} />
+      <span style={{ fontFamily: SERIF, color: GOLD_DARK, fontSize: '8px',
+                     letterSpacing: '3px', lineHeight: 1 }}>
+        MAP
+      </span>
+    </button>
+  );
+}
+
+export function VaultPill({ currentMap = 'world-best', displayName = '' }) {
+  const label = MAP_LABELS[currentMap] || 'WORLD BEST';
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '8px',
-      flexShrink: 0,
-      ...style,
+      backgroundColor: 'rgba(13,8,0,0.85)', border: '1px solid #C8A951',
+      borderRadius: '999px', padding: '4px 12px 4px 6px',
+      boxShadow: '0 0 10px rgba(201,168,76,0.15)',
     }}>
-      <div style={{
-        width: '28px', height: '28px', borderRadius: '50%',
-        border: '1.5px solid #C8A951',
-        background: 'radial-gradient(circle at 35% 35%, #F5E6C8 0%, #C8A951 50%, #8B6914 100%)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.4)',
-      }}>
-        <span style={{
-          fontFamily: "'Bebas Neue', sans-serif",
-          color: '#0D0800', fontSize: '14px', fontWeight: 'bold',
-          lineHeight: 1, marginTop: '-1px',
-        }}>
-          B
+      <Medallion size={24} glyphSize={11} />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+        <span style={{ fontFamily: SERIF, color: CREAM, fontSize: '11px',
+                       letterSpacing: '3px', lineHeight: 1, fontWeight: 700 }}>
+          VAULT
+        </span>
+        <span style={{ fontFamily: SANS, color: '#8B7355', fontSize: '8px',
+                       letterSpacing: '2px', lineHeight: 1, marginTop: '2px' }}>
+          {displayName ? displayName.toUpperCase() : label}
         </span>
       </div>
-      <span style={{
-        fontFamily: "'Cinzel', 'Bebas Neue', sans-serif",
-        color: '#C8A951', fontSize: '13px', letterSpacing: '4px',
-        fontWeight: 700,
-      }}>
-        BEST
-      </span>
+    </div>
+  );
+}
+
+function HeaderCrest({ currentMap = 'world-best', setCurrentMap, onOpenNav, displayName = '' }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <CrestButton currentMap={currentMap} setCurrentMap={setCurrentMap} onOpenNav={onOpenNav} />
+      <VaultPill currentMap={currentMap} displayName={displayName} />
     </div>
   );
 }
