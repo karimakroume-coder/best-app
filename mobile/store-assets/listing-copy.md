@@ -44,4 +44,7 @@ No platform has ever offered this. That is why BEST exists.
 ---
 
 *Character count: ~2,800 (under 4,000 limit)*
+
+**Privacy Policy (required by Play Store):** https://best-app-chi.vercel.app/privacy
+
 *Review this copy and adjust tone / details before Play Console submission.*

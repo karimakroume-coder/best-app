@@ -11,6 +11,7 @@ import Countdown from './Countdown';
 import Creators from './Creators';
 import CreatorOutreachKit from './CreatorOutreachKit';
 import CreatorStudio from './CreatorStudio';
+import Privacy from './Privacy';
 
 const DEFAULT_USER_ID = 'a307cc62-3afd-47b0-9911-9300a934d788';
 
@@ -185,6 +186,7 @@ function App() {
         <Route path="/creators" element={<Creators />} />
         <Route path="/creator-kit" element={<CreatorOutreachKit />} />
         <Route path="/creator-studio" element={<CreatorStudio />} />
+        <Route path="/privacy" element={<Privacy />} />
       </Routes>
     </BrowserRouter>
   );
