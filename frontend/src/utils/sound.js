@@ -95,3 +95,8 @@ export function playFlexSound() {
 export function playAddSound() {
   playTone({ freqs: [[0, 660], [0.1, 990]], durationMs: 220, type: 'triangle', peakGain: 0.08 });
 }
+
+// WATCH — YouTube open: a quick ascending slide.
+export function playWatchSound() {
+  playTone({ freqs: [[0, 330], [0.08, 660], [0.16, 990]], durationMs: 200, type: 'sine', peakGain: 0.07 });
+}

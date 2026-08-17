@@ -17,7 +17,7 @@ import WhisperCard from './WhisperCard';
 import Crown from './Crown';
 import HeaderCrest from './HeaderCrest';
 import RightRailMetrics from './RightRailMetrics';
-import { playMarkSound, playFlexSound, playAddSound } from './utils/sound';
+import { playMarkSound, playFlexSound, playAddSound, playWatchSound } from './utils/sound';
 import { burstConfetti } from './utils/confetti';
 
 const RANK_STYLES = {
@@ -37,8 +37,8 @@ function getRankStyle(rank) {
 }
 
 // ── VINTAGE RETRO RANK NUMBER (single card view only) ──────────────────────
-const RETRO_GOLD_SHADOW =
-  '3px 3px 0 #C8A951, 6px 6px 0 #B8860B, 9px 9px 0 #8B6914, 12px 12px 0 rgba(0,0,0,0.6)';
+// Rank 1 uses the .embossed-rank-1 CSS class (index.css) instead of an
+// inline shadow — this fontSize-only object is merged with that class.
 const RETRO_SILVER_SHADOW =
   '2px 2px 0 #A8A9AD, 4px 4px 0 #777777, 6px 6px 0 rgba(0,0,0,0.5)';
 
@@ -48,7 +48,7 @@ function getRetroRankStyle(rank) {
     color: '#F5E6C8',
     letterSpacing: '4px',
   };
-  if (rank === 1) return { ...base, fontSize: '120px', textShadow: RETRO_GOLD_SHADOW };
+  if (rank === 1) return { fontSize: '120px', letterSpacing: '4px' };
   if (rank <= 3)  return { ...base, fontSize: '96px', textShadow: RETRO_SILVER_SHADOW };
   if (rank <= 10) return { ...base, fontSize: '72px',
     textShadow: '2px 2px 0 #8B6914, 4px 4px 0 rgba(0,0,0,0.5)' };
@@ -1383,8 +1383,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
          }}>
 
       {/* VIGNETTE */}
-      <div style={{ position:'fixed', inset:0, zIndex:5, pointerEvents:'none',
-                    background:'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
+      <div className="cinematic-vignette" />
 
       {/* MAP INDICATOR PILL — shows current map when UI is open */}
       {uiOpen && (
@@ -1396,17 +1395,6 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
                          fontSize:'12px', letterSpacing:'4px' }}>
             {MAP_LABELS[currentMap] || currentMap.toUpperCase()}
-          </span>
-        </div>
-      )}
-
-      {/* DISCOVERY SCORE — near profile area when UI is open */}
-      {uiOpen && discoveryScore > 0 && (
-        <div style={{ position:'fixed', top:'60px', right:'80px', zIndex:160,
-                      pointerEvents:'none', animation:'fadeInSimple 0.3s ease' }}>
-          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C9A84C',
-                         fontSize:'11px', letterSpacing:'2px', opacity:0.8 }}>
-            ★ {discoveryScore}
           </span>
         </div>
       )}
@@ -1446,8 +1434,6 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           {/* PROFILE + UTILITY ROW */}
           <div style={{ display:'flex', alignItems:'center', gap:'8px',
                         flexShrink:0, animation:'fadeInLeft 0.35s ease-out' }}>
-
-            <HeaderCrest />
 
             {/* Rotating FLEX photos — reuses the current video's flex reactions
                 as a stand-in "profile" strip until a per-user flex feed exists */}
@@ -1519,15 +1505,6 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </div>
       )}
 
-      {/* RIGHT RAIL METRICS — top-right stats strip (Discovery Score, FF, Rank) */}
-      {uiOpen && (
-        <RightRailMetrics
-          discoveryScore={discoveryScore}
-          fireflagRemaining={fireflagRemaining}
-          rank={currentVideo.rank}
-        />
-      )}
-
       {/* MANDALA CONTROL CENTER — RIGHT: FLEX wall slide-in tab */}
       {uiOpen && !flexWallOpen && flexList.length > 0 && (
         <div onClick={(e) => { e.stopPropagation(); setFlexWallOpen(true); }}
@@ -1586,7 +1563,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
         {/* RANK NUMBER */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
-          <div style={{ ...rankStyle,
+          <div className={currentVideo.rank === 1 ? 'embossed-rank-1' : undefined}
+               style={{ ...rankStyle,
                         animation: currentVideo.rank === 1 ? 'pulse 3s infinite' : 'none',
                         transition:'all 0.8s ease-out',
                         fontSize: focusMode ? '36px' : rankStyle.fontSize,
@@ -1636,27 +1614,61 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             {currentVideo.channel_name}
           </div>
 
-          {/* RISING FAST + FIREFLAG COUNT */}
+          {/* INFO STRIP — dark translucent bar below video, above medallion bar.
+              Shows: RISING FAST indicator · video title/category · live count. */}
           {(() => {
             const isRising = risingVideos.some(r => r.video_id === currentVideo.video_id);
             const ffCount = currentVideo.fireflag_count || 0;
-            if (!isRising && ffCount === 0) return null;
+            const category = currentVideo.category || currentVideo.channel_name || '';
             return (
-              <div style={{ textAlign:'center', marginTop:'6px',
-                            transition:'opacity 0.5s ease', opacity: focusMode ? 0.3 : 1 }}>
-                {isRising && (
-                  <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
-                                fontSize:'11px', letterSpacing:'2px',
-                                animation:'risingPulse 2s ease-in-out infinite' }}>
-                    ↗ RISING FAST
-                  </div>
-                )}
-                {ffCount > 0 && (
-                  <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
-                                fontSize:'10px', letterSpacing:'1px', marginTop:'2px' }}>
-                    🔥 {ffCount} {ffCount === 1 ? 'USER' : 'USERS'}
-                  </div>
-                )}
+              <div style={{
+                position: 'relative', zIndex: 2,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                width: '100%', maxWidth: '340px', margin: '0 auto',
+                padding: '6px 12px',
+                backgroundColor: 'rgba(13,8,0,0.75)',
+                border: '1px solid rgba(200,169,81,0.2)',
+                borderRadius: '4px',
+                backdropFilter: 'blur(4px)',
+                transition: 'opacity 0.5s ease',
+                opacity: focusMode ? 0.4 : 1,
+              }}>
+                {/* LEFT — RISING FAST */}
+                <div style={{
+                  fontFamily: 'Bebas Neue, sans-serif',
+                  color: isRising ? '#C8A951' : 'transparent',
+                  fontSize: '10px', letterSpacing: '2px',
+                  animation: isRising ? 'risingPulse 2s ease-in-out infinite' : 'none',
+                  minWidth: '70px',
+                }}>
+                  {isRising ? '↗ RISING' : ''}
+                </div>
+
+                {/* CENTER — title / category */}
+                <div style={{
+                  fontFamily: 'Bebas Neue, sans-serif',
+                  color: '#F5E6C8',
+                  fontSize: '11px', letterSpacing: '2px',
+                  textAlign: 'center',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                  flex: 1,
+                  padding: '0 8px',
+                }}>
+                  {category.toUpperCase()}
+                </div>
+
+                {/* RIGHT — fireflag count */}
+                <div style={{
+                  fontFamily: 'Bebas Neue, sans-serif',
+                  color: ffCount > 0 ? '#E74C3C' : 'transparent',
+                  fontSize: '10px', letterSpacing: '1px',
+                  minWidth: '50px',
+                  textAlign: 'right',
+                }}>
+                  {ffCount > 0 ? `🔥 ${ffCount}` : ''}
+                </div>
               </div>
             );
           })()}
@@ -1706,10 +1718,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           </div>
         </div>
 
-        {/* YOUTUBE LINK — circular play button. Hidden while the Mandala
-            Control Center is open: it shares screen-bottom-center with the
-            MY 100 ring opening below (see MandalaFrameRings), and WATCH is
-            already reachable from the top profile row in that state. */}
+        {/* YOUTUBE LINK — red circular play button. Visible only when the
+            Mandala UI is closed. When the mandala opens, WATCH becomes
+            the 3rd medallion (bottom-center-right) in MandalaFrameRings. */}
         {!uiOpen && (
           <button
             onClick={(e) => { e.stopPropagation();
@@ -1819,6 +1830,24 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </div>
       )}
 
+      {/* HEADER CREST — B medallion + VAULT pill, top-left. Hidden while the
+          Mandala Control Center's own top bar is open (same region,
+          top:0-60px) so the two never overlap. */}
+      {!chromeHidden && (
+        <div style={{ position:'fixed', top:'16px', left:'16px', zIndex:120 }}>
+          <HeaderCrest currentMap={currentMap} setCurrentMap={setCurrentMap} />
+        </div>
+      )}
+
+      {/* RIGHT RAIL METRICS — persistent Discovery/Rank/Tier rail, replaces
+          the old uiOpen-only "★ {discoveryScore}" pill (removed above) as
+          the single always-visible metrics source. pointerEvents:none. */}
+      <RightRailMetrics
+        discoveryScore={discoveryScore}
+        currentRank={currentVideo.rank}
+        currentVideo={currentVideo}
+      />
+
       {/* RANDOM BUTTON — triggers a new drop animation */}
       {!chromeHidden && (
         <button
@@ -1912,8 +1941,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       )}
 
       {/* MANDALA SCREEN-EDGE ANIMATION — gold rings travel the frame from the
-          bottom-right corner, then MARK/MY 100/FLEX open along the bottom
-          edge. WATCH lives in the top profile row now (see above). */}
+          bottom-right corner, then MARK/MY 100/WATCH/FLEX open along the bottom
+          edge (4 medallions centered with 18px gap). */}
       <MandalaFrameRings
         open={uiOpen}
         openings={[
@@ -1933,7 +1962,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             ),
           },
           {
-            position: 'bottom-center',
+            position: 'bottom-center-left',
             locked: !isLoggedIn,
             onClick: (e) => addToPersonalBest(e, currentVideo),
             onTouchEnd: (e) => { e.preventDefault(); addToPersonalBest(e, currentVideo); },
@@ -1941,6 +1970,17 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               <span style={{ color:'#C8A951', fontSize:'24px', fontWeight:'bold', lineHeight:1 }}>
                 {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
               </span>
+            ),
+          },
+          {
+            position: 'bottom-center-right',
+            locked: false,
+            onClick: (e) => { e.stopPropagation(); playWatchSound(); window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); },
+            onTouchEnd: (e) => { e.stopPropagation(); e.preventDefault(); playWatchSound(); window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); },
+            icon: (
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <polygon points="8,5 19,12 8,19" fill="#C8A951" />
+              </svg>
             ),
           },
           {

@@ -4,17 +4,18 @@ import React, { useEffect, useRef, useState } from 'react';
 // Tapping the mandala sends gold concentric rings out along all four screen
 // edges from the bottom-right corner — two fronts (right+top, bottom+left)
 // each covering two edges in the WAVE_MS window, meeting at the top-left
-// corner. Once the frame completes, three circular openings appear along
+// corner. Once the frame completes, four circular openings appear along
 // the bottom edge and their icons fade in. Holding the mandala 3s (or any
 // other close path) reverses the same animation — openings close, then the
 // rings converge back into the corner.
+// Openings (left→right): MARK (color wheel) · MY100 (+) · WATCH (▶) · FLEX (camera)
 const RING_GOLD = '#C8A951';
 const WAVE_MS = 800;
 const RING_INSETS = [0, 6, 12];
 const RING_OPACITIES = [1, 0.55, 0.3];
 const RING_DELAYS_MS = [0, 60, 120];
 
-const OPENING_ORDER = ['bottom-left', 'bottom-center', 'bottom-right'];
+const OPENING_ORDER = ['bottom-left', 'bottom-center-left', 'bottom-center-right', 'bottom-right'];
 
 function EdgeRing({ inset, opacity, delayMs, reverse }) {
   const seg = (extra) => ({
@@ -86,7 +87,7 @@ function Opening({ icon, locked, onClick, onTouchEnd, revealed }) {
   );
 }
 
-// openings: [{ position: 'bottom-left'|'bottom-center'|'bottom-right', icon, locked, onClick, onTouchEnd }]
+// openings: [{ position: 'bottom-left'|'bottom-center-left'|'bottom-center-right'|'bottom-right', icon, locked, onClick, onTouchEnd }]
 function MandalaFrameRings({ open, openings = [] }) {
   const [phase, setPhase] = useState(open ? 'open' : 'closed');
   const prevOpenRef = useRef(open);
@@ -116,13 +117,12 @@ function MandalaFrameRings({ open, openings = [] }) {
                   delayMs={RING_DELAYS_MS[i]} reverse={phase === 'closing'} />
       ))}
 
-      {/* Single flex row — each opening gets its own slot via space-between,
-          instead of three independently left:X%-centered fixed divs that
-          could collide with each other (or with unrelated fixed-position
-          siblings, like the fireflag icon) at some viewport widths. */}
+      {/* Single flex row — 4 medallions centered with even gap. Uses
+          justify-content:center + gap instead of space-between so 4
+          buttons stay comfortably spaced on 360–412px screens. */}
       <div style={{ position:'fixed', left:0, right:0, bottom:'6%',
-                    display:'flex', justifyContent:'space-between', alignItems:'center',
-                    padding:'0 28px' }}>
+                    display:'flex', justifyContent:'center', alignItems:'center',
+                    gap:'18px', padding:'0 20px' }}>
         {OPENING_ORDER.map((position) => {
           const op = byPosition[position];
           return op
