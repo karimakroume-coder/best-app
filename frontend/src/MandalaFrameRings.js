@@ -68,12 +68,9 @@ function Opening({ icon, locked, onClick, onTouchEnd, revealed }) {
     <div
       onClick={onClick}
       onTouchEnd={onTouchEnd}
+      className="gold-medallion"
       style={{
-        position: 'relative', flexShrink: 0,
-        width: '52px', height: '52px', borderRadius: '50%',
-        border: `1.5px solid ${RING_GOLD}`, backgroundColor: 'rgba(13,8,0,0.9)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        pointerEvents: revealed ? 'auto' : 'none', cursor: 'pointer',
+        pointerEvents: revealed ? 'auto' : 'none',
         transform: `scale(${revealed ? 1 : 0})`,
         opacity: revealed ? 1 : 0,
         transition: 'transform 0.3s ease-out, opacity 0.3s ease-out',
@@ -130,7 +127,7 @@ function MandalaFrameRings({ open, openings = [] }) {
           const op = byPosition[position];
           return op
             ? <Opening key={position} {...op} revealed={revealed} />
-            : <div key={position} style={{ width:'52px', flexShrink:0 }} />;
+            : <div key={position} style={{ width:'56px', flexShrink:0 }} />;
         })}
       </div>
 

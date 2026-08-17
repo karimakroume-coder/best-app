@@ -24,3 +24,59 @@ html, body, #root {
   60%  { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
+
+/* ── GOLD MEDALLION — embossed button style for Mandala action openings ── */
+.gold-medallion {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #F5E6C8 0%, #C8A951 40%, #8B6914 100%);
+  border: 2px solid #C8A951;
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.5),
+    inset 0 1px 2px rgba(245,230,200,0.4),
+    inset 0 -1px 2px rgba(0,0,0,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  flex-shrink: 0;
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+.gold-medallion:active {
+  transform: scale(0.92);
+  box-shadow:
+    0 1px 4px rgba(0,0,0,0.6),
+    inset 0 1px 3px rgba(0,0,0,0.4);
+}
+
+/* ── EMBOSSED RANK 1 — gold relief text for #1 position ────────────────── */
+.embossed-rank-1 {
+  font-family: 'Bebas Neue', sans-serif;
+  color: #F5E6C8;
+  text-shadow:
+    1px 1px 0 #C8A951,
+    2px 2px 0 #B8860B,
+    3px 3px 0 #8B6914,
+    0 0 12px rgba(200,169,81,0.3);
+}
+
+/* ── CINEMATIC VIGNETTE — dark-edge overlay for single-card view ───────── */
+.cinematic-vignette {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
+}
+
+/* ── FILM GRAIN — subtle noise texture overlay ──────────────────────────── */
+.film-grain {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}

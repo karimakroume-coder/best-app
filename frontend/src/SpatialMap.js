@@ -15,6 +15,10 @@ import CrewBest from './CrewBest';
 import BestMap from './BestMap';
 import WhisperCard from './WhisperCard';
 import Crown from './Crown';
+import HeaderCrest from './HeaderCrest';
+import RightRailMetrics from './RightRailMetrics';
+import { playMarkSound, playFlexSound, playAddSound } from './utils/sound';
+import { burstConfetti } from './utils/confetti';
 
 const RANK_STYLES = {
   1:  { color: '#C9A84C', fontSize: '72px', fontWeight: 'bold' },
@@ -739,6 +743,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           snapshot_url: markSnapshotUrl || null,
         }).catch(err => console.log('Color assign error:', err));
         if (onColorAssigned) onColorAssigned(markVideo.video_id, markColor.name);
+        playMarkSound();
       }
       setMarkStage('idle');
       setMarkColor(null);
@@ -919,6 +924,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       setFireflaggedVideos(prev => ({ ...prev, [video.video_id]: true }));
       setFireflagAnimating(video.video_id);
       setTimeout(() => setFireflagAnimating(v => v === video.video_id ? null : v), 400);
+      const rect = e.target?.getBoundingClientRect?.();
+      burstConfetti(rect ? rect.left + rect.width / 2 : window.innerWidth / 2,
+                    rect ? rect.top + rect.height / 2 : window.innerHeight / 2);
     } catch (err) {
       const message = err.response?.status === 429
         ? err.response.data?.detail || 'Fireflag limit reached'
@@ -947,6 +955,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       setPersonalBestPointsFlash(true);
       setTimeout(() => setPersonalBestPointsFlash(false), 1500);
       if (onPersonalBestAdded) onPersonalBestAdded(video.video_id);
+      playAddSound();
     } catch (err) {
       const message = err.response?.data?.detail || 'Could not add to Personal Best 100';
       setPersonalBestError(message);
@@ -1060,6 +1069,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       setTimeout(() => setFlexError(m => m === message ? null : m), 3000);
       console.log('Flex place error:', err);
     }
+    playFlexSound();
   }, [flexSnapshotUrl, flexStickerDrop, currentVideo, userId, flexOverlay, onFlexPlaced, closeFlexPanel]);
 
   const openColorWheel = useCallback((e) => {
@@ -1437,6 +1447,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           <div style={{ display:'flex', alignItems:'center', gap:'8px',
                         flexShrink:0, animation:'fadeInLeft 0.35s ease-out' }}>
 
+            <HeaderCrest />
+
             {/* Rotating FLEX photos — reuses the current video's flex reactions
                 as a stand-in "profile" strip until a per-user flex feed exists */}
             {flexList.slice(0, 4).map((flex, i) => (
@@ -1507,6 +1519,15 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </div>
       )}
 
+      {/* RIGHT RAIL METRICS — top-right stats strip (Discovery Score, FF, Rank) */}
+      {uiOpen && (
+        <RightRailMetrics
+          discoveryScore={discoveryScore}
+          fireflagRemaining={fireflagRemaining}
+          rank={currentVideo.rank}
+        />
+      )}
+
       {/* MANDALA CONTROL CENTER — RIGHT: FLEX wall slide-in tab */}
       {uiOpen && !flexWallOpen && flexList.length > 0 && (
         <div onClick={(e) => { e.stopPropagation(); setFlexWallOpen(true); }}
@@ -1525,8 +1546,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       )}
 
       {/* GRAIN TEXTURE */}
-      <div style={{ position:'fixed', inset:0, zIndex:6, pointerEvents:'none', opacity:0.06,
-                    backgroundImage:"url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E\")" }} />
+      <div className="film-grain" />
 
       {/* VIDEO CARD */}
       <animated.div style={{ ...springs, width:'100%', height:'100%',
