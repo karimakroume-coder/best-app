@@ -1,6 +1,6 @@
 import React from 'react';
 
-const GOLD = '#C8A951';
+const GOLD = '#F0C040';
 const CREAM = '#F5F0E6';
 const BG = '#0D0800';
 const DIM = '#555';

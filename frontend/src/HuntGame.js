@@ -21,14 +21,14 @@ function HuntGame({ targetVideo, angleDeg, withinRange, discovered, onClose }) {
 
       <div style={{ marginTop:'104px', width:'160px', height:'160px', borderRadius:'8px',
                     overflow:'hidden', border:'1px solid #333',
-                    boxShadow: discovered ? '0 0 40px #C9A84C' : 'none',
+                    boxShadow: discovered ? '0 0 40px #F0C040' : 'none',
                     transition:'box-shadow 0.4s ease' }}>
         {targetVideo.thumbnail_url &&
           <img src={targetVideo.thumbnail_url} alt=""
                style={{ width:'100%', height:'100%', objectFit:'cover' }} />}
       </div>
 
-      <p style={{ color:'#C9A84C', fontSize:'13px', letterSpacing:'4px',
+      <p style={{ color:'#F0C040', fontSize:'13px', letterSpacing:'4px',
                   marginTop:'16px', fontWeight:'bold' }}>
         FIND THIS
       </p>
@@ -36,7 +36,7 @@ function HuntGame({ targetVideo, angleDeg, withinRange, discovered, onClose }) {
       {!discovered && (
         <div style={{ marginTop:'32px', width:'64px', height:'64px', borderRadius:'50%',
                       display:'flex', alignItems:'center', justifyContent:'center',
-                      border: `2px solid ${withinRange ? '#C9A84C' : '#333'}`,
+                      border: `2px solid ${withinRange ? '#F0C040' : '#333'}`,
                       boxShadow: withinRange ? '0 0 24px rgba(201,168,76,0.6)' : 'none',
                       backgroundColor:'rgba(10,10,10,0.6)',
                       transition:'border 0.3s ease, box-shadow 0.3s ease' }}>
@@ -49,10 +49,10 @@ function HuntGame({ targetVideo, angleDeg, withinRange, discovered, onClose }) {
       )}
 
       {discovered && (
-        <div style={{ marginTop:'32px', color:'#C9A84C', fontSize:'16px',
+        <div style={{ marginTop:'32px', color:'#F0C040', fontSize:'16px',
                       fontWeight:'bold', letterSpacing:'3px',
                       animation:'huntPulse 0.8s ease-in-out infinite',
-                      textShadow:'0 0 20px #C9A84C' }}>
+                      textShadow:'0 0 20px #F0C040' }}>
           FOUND · +50
         </div>
       )}

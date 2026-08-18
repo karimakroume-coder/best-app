@@ -31,7 +31,7 @@ function TimeBlock({ value, label }) {
                      lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </span>
-      <span style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+      <span style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040',
                      fontSize: '10px', letterSpacing: '2px', marginTop: '6px' }}>
         {label}
       </span>
@@ -93,13 +93,13 @@ function LiveStats() {
     }}>
       {boxes.map((box, i) => (
         <div key={i} style={{
-          border: '1px solid #C8A951',
-          backgroundColor: 'rgba(200,169,81,0.05)',
+          border: '1px solid #F0C040',
+          backgroundColor: 'rgba(240,192,64,0.05)',
           padding: '12px 8px', textAlign: 'center'
         }}>
           <div style={{
             fontFamily: 'Bebas Neue, sans-serif',
-            fontSize: 28, color: '#C8A951', lineHeight: 1
+            fontSize: 28, color: '#F0C040', lineHeight: 1
           }}>{box.value}</div>
           <div style={{
             fontFamily: 'Bebas Neue, sans-serif',
@@ -162,7 +162,7 @@ function ApplicationModal({ onClose }) {
   const labelStyle = {
     fontFamily: 'Bebas Neue, sans-serif',
     fontSize: 10, letterSpacing: 3,
-    color: '#C8A951', marginBottom: 4,
+    color: '#F0C040', marginBottom: 4,
     display: 'block'
   };
 
@@ -174,7 +174,7 @@ function ApplicationModal({ onClose }) {
     }} onClick={onClose}>
       <div style={{
         width: '100%', backgroundColor: '#0D0800',
-        border: '1px solid #C8A951',
+        border: '1px solid #F0C040',
         borderRadius: '8px 8px 0 0',
         padding: 24, maxHeight: '85vh',
         overflowY: 'auto',
@@ -185,7 +185,7 @@ function ApplicationModal({ onClose }) {
           <div style={{ textAlign: 'center', padding: '32px 0' }}>
             <div style={{
               fontFamily: 'Pacifico, cursive',
-              fontSize: 24, color: '#C8A951', marginBottom: 16
+              fontSize: 24, color: '#F0C040', marginBottom: 16
             }}>Application Received</div>
             <div style={{
               fontFamily: 'Bebas Neue, sans-serif',
@@ -196,7 +196,7 @@ function ApplicationModal({ onClose }) {
           <>
             <div style={{
               fontFamily: 'Pacifico, cursive',
-              fontSize: 24, color: '#C8A951',
+              fontSize: 24, color: '#F0C040',
               textAlign: 'center', marginBottom: 24
             }}>Join The Founding 100</div>
 
@@ -221,7 +221,7 @@ function ApplicationModal({ onClose }) {
             {scorePreview && (
               <div style={{
                 fontFamily: 'Bebas Neue, sans-serif',
-                fontSize: 11, color: '#C8A951',
+                fontSize: 11, color: '#F0C040',
                 letterSpacing: 2, marginTop: -8, marginBottom: 12
               }}>
                 {scorePreview.channel_found
@@ -257,7 +257,7 @@ function ApplicationModal({ onClose }) {
               style={{
                 width: '100%', fontFamily: 'Bebas Neue, sans-serif',
                 fontSize: 16, letterSpacing: 4, color: '#0D0800',
-                backgroundColor: '#C8A951', border: 'none',
+                backgroundColor: '#F0C040', border: 'none',
                 borderRadius: 0, padding: '14px 0',
                 cursor: 'pointer', minHeight: 44, marginTop: 8
               }}>
@@ -348,7 +348,7 @@ function Creators() {
   };
 
   const goldBtn = {
-    width: '100%', padding: '14px', backgroundColor: '#C8A951',
+    width: '100%', padding: '14px', backgroundColor: '#F0C040',
     border: 'none', color: '#0D0800', fontSize: '14px',
     letterSpacing: '3px', cursor: 'pointer', fontFamily: 'Bebas Neue, sans-serif',
     minHeight: '44px',
@@ -361,10 +361,10 @@ function Creators() {
 
       {/* SECTION 1 — HEADER */}
       <div style={{ textAlign: 'center', marginTop: '40px' }}>
-        <div style={{ fontFamily: 'Pacifico, cursive', color: '#C8A951', fontSize: '36px' }}>
+        <div style={{ fontFamily: 'Pacifico, cursive', color: '#F0C040', fontSize: '36px' }}>
           BEST
         </div>
-        <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+        <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040',
                       fontSize: '18px', letterSpacing: '8px', marginTop: '8px' }}>
           FOUNDING CREATORS
         </div>
@@ -378,14 +378,14 @@ function Creators() {
         <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F5F0E6', fontSize: '40px', lineHeight: 1.1 }}>
           100 CREATORS.
         </div>
-        <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951', fontSize: '24px',
+        <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040', fontSize: '24px',
                       lineHeight: 1.2, marginTop: '8px' }}>
           THE WORLD'S FIRST
         </div>
-        <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951', fontSize: '24px', lineHeight: 1.2 }}>
+        <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040', fontSize: '24px', lineHeight: 1.2 }}>
           INDEPENDENT RANKING.
         </div>
-        <div style={{ fontFamily: 'Pacifico, cursive', color: '#C8A951', fontSize: '14px', marginTop: '16px' }}>
+        <div style={{ fontFamily: 'Pacifico, cursive', color: '#F0C040', fontSize: '14px', marginTop: '16px' }}>
           We track the world's best content independently.
           <br />
           No algorithm bias. No platform agenda.
@@ -399,9 +399,9 @@ function Creators() {
                     gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
         {CARDS.map(card => (
           <div key={card.title}
-               style={{ border: '1px solid #C8A951', backgroundColor: 'rgba(200,169,81,0.05)',
+               style={{ border: '1px solid #F0C040', backgroundColor: 'rgba(240,192,64,0.05)',
                         padding: '16px', borderRadius: 0 }}>
-            <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+            <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040',
                           fontSize: '14px', letterSpacing: '3px' }}>
               {card.title}
             </div>
@@ -415,12 +415,12 @@ function Creators() {
 
       {/* SECTION 4 — COUNTDOWN */}
       <div style={{ marginTop: '40px', textAlign: 'center' }}>
-        <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+        <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040',
                       fontSize: '14px', letterSpacing: '4px' }}>
           BEST LAUNCHES IN:
         </div>
         {timeLeft.done ? (
-          <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+          <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040',
                         fontSize: 'clamp(28px, 6vw, 48px)', letterSpacing: '4px',
                         marginTop: '16px' }}>
             BEST IS LIVE
@@ -460,9 +460,9 @@ function Creators() {
         </div>
         {preview && (
           <div style={{ marginTop: '16px', textAlign: 'center', padding: '20px',
-                        border: '1px solid #3A2E14', backgroundColor: 'rgba(200,169,81,0.05)',
+                        border: '1px solid #3A2E14', backgroundColor: 'rgba(240,192,64,0.05)',
                         maxWidth: '480px', margin: '16px auto 0' }}>
-            <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951', fontSize: '32px' }}>
+            <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040', fontSize: '32px' }}>
               {preview.channel_found ? `SCORE: ${preview.best_score}` : 'NOT FOUND'}
             </div>
             <div style={{ fontFamily: 'Pacifico, cursive', color: '#F5F0E6', fontSize: '13px', marginTop: '8px' }}>
@@ -485,7 +485,7 @@ function Creators() {
             <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F5F0E6', fontSize: '28px' }}>
               ARE YOU ONE OF THE 100?
             </div>
-            <div style={{ fontFamily: 'Pacifico, cursive', color: '#C8A951', fontSize: '13px', marginTop: '8px' }}>
+            <div style={{ fontFamily: 'Pacifico, cursive', color: '#F0C040', fontSize: '13px', marginTop: '8px' }}>
               We select based on independent BEST score data.
               <br />
               Not follower count.
@@ -496,9 +496,9 @@ function Creators() {
             </button>
           </>
         ) : applied ? (
-          <div style={{ padding: '32px 24px', border: '1px solid #C8A951',
-                        backgroundColor: 'rgba(200,169,81,0.05)', maxWidth: '400px', margin: '0 auto' }}>
-            <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951', fontSize: '28px' }}>
+          <div style={{ padding: '32px 24px', border: '1px solid #F0C040',
+                        backgroundColor: 'rgba(240,192,64,0.05)', maxWidth: '400px', margin: '0 auto' }}>
+            <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040', fontSize: '28px' }}>
               APPLICATION RECEIVED
             </div>
             <div style={{ fontFamily: 'Pacifico, cursive', color: '#F5F0E6', fontSize: '13px', marginTop: '12px' }}>
@@ -514,7 +514,7 @@ function Creators() {
           </div>
         ) : (
           <div style={{ maxWidth: '400px', margin: '0 auto', textAlign: 'left' }}>
-            <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+            <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040',
                           fontSize: '18px', letterSpacing: '3px', marginBottom: '16px', textAlign: 'center' }}>
               FOUNDING CREATOR APPLICATION
             </div>
@@ -563,7 +563,7 @@ function Creators() {
 
       {/* SECTION 7 — FOOTER */}
       <div style={{ marginTop: '40px', marginBottom: '60px', textAlign: 'center' }}>
-        <span style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+        <span style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040',
                        fontSize: '12px', letterSpacing: '3px' }}>
           founding@bestapp.com
         </span>

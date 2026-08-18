@@ -75,12 +75,12 @@ function MandalaButton({ onClick, onHold, holdDuration = 3000, size = 44, isOpen
             animationDirection: ring.direction,
           }}>
             {ringCircles(ring).map((pt, i) => (
-              <circle key={i} cx={pt.cx} cy={pt.cy} r={ring.size} fill="#C8A951" />
+              <circle key={i} cx={pt.cx} cy={pt.cy} r={ring.size} fill="#F0C040" />
             ))}
           </g>
         ))}
-        <circle cx={CENTER} cy={CENTER} r={8} fill="#C8A951"
-                style={{ filter: 'drop-shadow(0 0 4px #C8A951)' }} />
+        <circle cx={CENTER} cy={CENTER} r={8} fill="#F0C040"
+                style={{ filter: 'drop-shadow(0 0 4px #F0C040)' }} />
       </svg>
       <style>{`
         @keyframes mandalaSpin {

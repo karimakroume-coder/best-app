@@ -7,7 +7,7 @@ const BASE_COLORS = [
   { name: 'yellow', hex: '#F1C40F', label: 'YELLOW' },
   { name: 'black',  hex: '#2C2C2C', label: 'BLACK', border: '#888888' },
   { name: 'white',  hex: '#FFFFFF', label: 'WHITE', border: '#555555' },
-  { name: 'gold',   hex: '#C9A84C', label: 'GOLD' },
+  { name: 'gold',   hex: '#F0C040', label: 'GOLD' },
 ];
 
 function getOrderedColors() {

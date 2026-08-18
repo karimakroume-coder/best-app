@@ -44,8 +44,8 @@ import axios from 'axios';
 
 const API_BASE = 'https://web-production-a267.up.railway.app';
 
-const GOLD = '#C8A951';
-const GOLD_BRIGHT = '#C9A84C';
+const GOLD = '#F0C040';
+const GOLD_BRIGHT = '#F0C040';
 const CREAM = '#F5E6C8';
 const CREAM_WARM = '#F5F0E6';
 const DARK = '#0D0800';
@@ -100,7 +100,7 @@ function CardPreview({ style, font, title, channel, rank, note, peakSeconds, thu
     <div style={{
       position: 'absolute', top: '10px', right: '10px', zIndex: 3,
       display: 'flex', alignItems: 'center', gap: '5px',
-      backgroundColor: 'rgba(0,0,0,0.65)', border: '1px solid rgba(200,169,81,0.7)',
+      backgroundColor: 'rgba(0,0,0,0.65)', border: '1px solid rgba(240,192,64,0.7)',
       borderRadius: '4px', padding: '3px 8px',
       fontFamily: "'Bebas Neue', sans-serif", color: GOLD_BRIGHT,
       fontSize: '11px', letterSpacing: '2px',
@@ -137,7 +137,7 @@ function CardPreview({ style, font, title, channel, rank, note, peakSeconds, thu
           </div>
           <div style={{ flex: 1, padding: '18px 20px', display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px',
-                          letterSpacing: '4px', color: '#8B6914' }}>
+                          letterSpacing: '4px', color: '#8B4513' }}>
               N&ordm; {rank} &middot; BEST MAP
             </div>
             <div style={{ fontFamily, fontSize: '26px', lineHeight: 1.1, marginTop: '10px',
@@ -196,7 +196,7 @@ function CardPreview({ style, font, title, channel, rank, note, peakSeconds, thu
         <div style={{
           position: 'relative', width: '100%', height: '100%',
           backgroundColor: '#1A1408', color: CREAM_WARM,
-          overflow: 'hidden', border: '4px double #C8A951',
+          overflow: 'hidden', border: '4px double #F0C040',
         }}>
           {thumbnailUrl ? (
             <img src={thumbnailUrl} alt=""
@@ -213,12 +213,12 @@ function CardPreview({ style, font, title, channel, rank, note, peakSeconds, thu
                         flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         textAlign: 'center', padding: '20px' }}>
             <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px',
-                          letterSpacing: '5px', color: '#C8A951' }}>
+                          letterSpacing: '5px', color: '#F0C040' }}>
               EST. MMXXVII
             </div>
             <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '64px',
                           lineHeight: 1, color: CREAM_WARM, marginTop: '6px',
-                          textShadow: '2px 2px 0 #8B6914' }}>
+                          textShadow: '2px 2px 0 #8B4513' }}>
               #{rank}
             </div>
             <div style={{ fontFamily, fontSize: '22px', marginTop: '10px',
@@ -286,8 +286,8 @@ function CardPreview({ style, font, title, channel, rank, note, peakSeconds, thu
         }}>
           <div style={{
             position: 'relative', width: '100%', height: '100%', overflow: 'hidden',
-            border: '2px solid #C8A951',
-            boxShadow: 'inset 0 0 0 1px #8B6914, inset 0 0 24px rgba(200,169,81,0.25)',
+            border: '2px solid #F0C040',
+            boxShadow: 'inset 0 0 0 1px #8B4513, inset 0 0 24px rgba(240,192,64,0.25)',
           }}>
             {thumbnailUrl ? (
               <img src={thumbnailUrl} alt="" style={{ ...thumbStyle, filter: 'brightness(0.55) saturate(1.1)' }} />
@@ -300,16 +300,16 @@ function CardPreview({ style, font, title, channel, rank, note, peakSeconds, thu
                           flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                           textAlign: 'center', padding: '20px' }}>
               <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '12px',
-                            letterSpacing: '6px', color: '#C8A951' }}>
+                            letterSpacing: '6px', color: '#F0C040' }}>
                 &#9733; BEST &#9733;
               </div>
               <div style={{
                 fontFamily: "'Bebas Neue', sans-serif", fontSize: '70px', lineHeight: 1,
                 marginTop: '4px',
-                background: 'linear-gradient(180deg, #F5E6C8 0%, #C8A951 55%, #8B6914 100%)',
+                background: 'linear-gradient(180deg, #F5E6C8 0%, #F0C040 55%, #8B4513 100%)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
                 backgroundClip: 'text',
-                filter: 'drop-shadow(0 0 8px rgba(200,169,81,0.6))',
+                filter: 'drop-shadow(0 0 8px rgba(240,192,64,0.6))',
               }}>
                 #{rank}
               </div>
@@ -349,7 +349,7 @@ function CardPreview({ style, font, title, channel, rank, note, peakSeconds, thu
                         flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
                         textAlign: 'center', padding: '20px' }}>
             <div style={{ fontFamily: "'Pacifico', cursive", fontSize: '20px', color: CREAM,
-                          textShadow: '2px 2px 0 #C8A951' }}>
+                          textShadow: '2px 2px 0 #F0C040' }}>
               BEST
             </div>
             {rankBadge}
@@ -441,7 +441,7 @@ function CreatorStudio() {
 
   const sectionStyle = {
     border: '1px solid #2A2110',
-    backgroundColor: 'rgba(200,169,81,0.04)',
+    backgroundColor: 'rgba(240,192,64,0.04)',
     padding: '16px',
     marginBottom: '14px',
   };
@@ -482,7 +482,7 @@ function CreatorStudio() {
           <div style={{
             fontFamily: "'Bebas Neue', sans-serif", fontSize: '13px', letterSpacing: '3px',
             color: DARK, backgroundColor: GOLD, padding: '4px 12px',
-            boxShadow: '0 0 12px rgba(200,169,81,0.5)',
+            boxShadow: '0 0 12px rgba(240,192,64,0.5)',
           }}>
             PRO
           </div>
@@ -495,7 +495,7 @@ function CreatorStudio() {
 
       <div style={{
         margin: '16px 16px 0', padding: '10px 14px',
-        border: '1px solid #C8A951', backgroundColor: 'rgba(200,169,81,0.08)',
+        border: '1px solid #F0C040', backgroundColor: 'rgba(240,192,64,0.08)',
         textAlign: 'center',
       }}>
         <span style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px',
@@ -519,8 +519,8 @@ function CreatorStudio() {
                   onClick={() => setCardStyle(s.id)}
                   style={{
                     textAlign: 'left', cursor: 'pointer', padding: '10px 12px',
-                    backgroundColor: cardStyle === s.id ? 'rgba(200,169,81,0.18)' : 'transparent',
-                    border: cardStyle === s.id ? '1px solid #C8A951' : '1px solid #3A2E14',
+                    backgroundColor: cardStyle === s.id ? 'rgba(240,192,64,0.18)' : 'transparent',
+                    border: cardStyle === s.id ? '1px solid #F0C040' : '1px solid #3A2E14',
                     color: cardStyle === s.id ? GOLD : CREAM_WARM,
                   }}>
                   <div style={{ fontFamily: "'Bebas Neue', sans-serif", fontSize: '13px',
@@ -553,8 +553,8 @@ function CreatorStudio() {
                   onClick={() => setFont(f.id)}
                   style={{
                     cursor: 'pointer', padding: '8px 12px',
-                    backgroundColor: font === f.id ? 'rgba(200,169,81,0.18)' : 'transparent',
-                    border: font === f.id ? '1px solid #C8A951' : '1px solid #3A2E14',
+                    backgroundColor: font === f.id ? 'rgba(240,192,64,0.18)' : 'transparent',
+                    border: font === f.id ? '1px solid #F0C040' : '1px solid #3A2E14',
                     color: font === f.id ? GOLD : CREAM_WARM,
                     fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px', letterSpacing: '2px',
                   }}>
@@ -610,8 +610,8 @@ function CreatorStudio() {
                   onClick={() => setReportStyle(r.id)}
                   style={{
                     cursor: 'pointer', padding: '8px 14px',
-                    backgroundColor: reportStyle === r.id ? 'rgba(200,169,81,0.18)' : 'transparent',
-                    border: reportStyle === r.id ? '1px solid #C8A951' : '1px solid #3A2E14',
+                    backgroundColor: reportStyle === r.id ? 'rgba(240,192,64,0.18)' : 'transparent',
+                    border: reportStyle === r.id ? '1px solid #F0C040' : '1px solid #3A2E14',
                     color: reportStyle === r.id ? GOLD : CREAM_WARM,
                     fontFamily: "'Bebas Neue', sans-serif", fontSize: '11px', letterSpacing: '2px',
                   }}>

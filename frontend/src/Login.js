@@ -26,7 +26,7 @@ function Login({ onLogin }) {
                   display: 'flex', flexDirection: 'column',
                   alignItems: 'center', justifyContent: 'center',
                   fontFamily: 'Arial, sans-serif' }}>
-      <h1 style={{ color: '#C9A84C', fontSize: '48px',
+      <h1 style={{ color: '#F0C040', fontSize: '48px',
                    letterSpacing: '12px', marginBottom: '8px' }}>BEST</h1>
       <p style={{ color: '#555555', fontSize: '12px',
                   letterSpacing: '4px', marginBottom: '48px' }}>SIGN IN</p>
@@ -48,7 +48,7 @@ function Login({ onLogin }) {
                             marginBottom: '16px' }}>{error}</p>}
 
       <button onClick={handleLogin} disabled={loading}
-        style={{ width: '332px', padding: '12px', backgroundColor: '#C9A84C',
+        style={{ width: '332px', padding: '12px', backgroundColor: '#F0C040',
                  border: 'none', color: '#000000', fontSize: '13px',
                  letterSpacing: '3px', cursor: 'pointer', fontWeight: 'bold' }}>
         {loading ? 'SIGNING IN...' : 'SIGN IN'}
@@ -56,7 +56,7 @@ function Login({ onLogin }) {
 
       <p style={{ color: '#555555', fontSize: '12px', marginTop: '24px' }}>
         No account?{' '}
-        <a href="/register" style={{ color: '#C9A84C', textDecoration: 'none' }}>
+        <a href="/register" style={{ color: '#F0C040', textDecoration: 'none' }}>
           Register
         </a>
       </p>

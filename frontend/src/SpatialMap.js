@@ -17,11 +17,14 @@ import WhisperCard from './WhisperCard';
 import Crown from './Crown';
 import HeaderCrest from './HeaderCrest';
 import RightRailMetrics from './RightRailMetrics';
+import RankNumber from './RankNumber';
+import MetricStack from './MetricStack';
+import RisingFastBadge from './RisingFastBadge';
 import { playMarkSound, playFlexSound, playAddSound, playWatchSound } from './utils/sound';
 import { burstConfetti } from './utils/confetti';
 
 const RANK_STYLES = {
-  1:  { color: '#C9A84C', fontSize: '72px', fontWeight: 'bold' },
+  1:  { color: '#F0C040', fontSize: '72px', fontWeight: 'bold' },
   2:  { color: '#A8A9AD', fontSize: '56px', fontWeight: 'bold' },
   3:  { color: '#A8A9AD', fontSize: '56px', fontWeight: 'bold' },
   10: { color: '#FFFFFF', fontSize: '42px', fontWeight: 'bold' },
@@ -51,9 +54,9 @@ function getRetroRankStyle(rank) {
   if (rank === 1) return { fontSize: '120px', letterSpacing: '4px' };
   if (rank <= 3)  return { ...base, fontSize: '96px', textShadow: RETRO_SILVER_SHADOW };
   if (rank <= 10) return { ...base, fontSize: '72px',
-    textShadow: '2px 2px 0 #8B6914, 4px 4px 0 rgba(0,0,0,0.5)' };
+    textShadow: '2px 2px 0 #8B4513, 4px 4px 0 rgba(0,0,0,0.5)' };
   if (rank <= 50) return { ...base, fontSize: '48px',
-    textShadow: '1px 1px 0 #8B6914, 2px 2px 0 rgba(0,0,0,0.5)' };
+    textShadow: '1px 1px 0 #8B4513, 2px 2px 0 rgba(0,0,0,0.5)' };
   return { ...base, fontSize: '32px', color: '#8B7355',
     textShadow: '1px 1px 0 rgba(0,0,0,0.5)' };
 }
@@ -156,9 +159,9 @@ const vintageButtonBase = {
   fontFamily: 'Bebas Neue, sans-serif',
   fontSize: '11px',
   letterSpacing: '4px',
-  color: '#C8A951',
+  color: '#F0C040',
   backgroundColor: 'transparent',
-  border: '1px solid #C8A951',
+  border: '1px solid #F0C040',
   borderRadius: 0,
   padding: '8px 16px',
   minWidth: '44px',
@@ -177,14 +180,14 @@ const zoomButtonStyle = {
 // ── DOT ACTION PANEL — shared circle style for color/watch/best/camera ────
 const dotCircleStyle = {
   width: '36px', height: '36px', borderRadius: '50%',
-  border: '1px solid #C8A951', backgroundColor: 'transparent',
+  border: '1px solid #F0C040', backgroundColor: 'transparent',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer',
 };
 
 const microNavStyle = {
   width: '30px', height: '30px', borderRadius: '50%',
-  border: '1px solid #C8A951', backgroundColor: 'rgba(13,8,0,0.85)',
+  border: '1px solid #F0C040', backgroundColor: 'rgba(13,8,0,0.85)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer', flexShrink: 0,
 };
@@ -236,7 +239,7 @@ function playMapTransitionSound() {
 function LockBadge() {
   return (
     <span style={{ position:'absolute', top:'-4px', right:'-4px',
-                   fontSize:'11px', color:'#C9A84C',
+                   fontSize:'11px', color:'#F0C040',
                    textShadow:'0 0 4px rgba(0,0,0,0.9)',
                    pointerEvents:'none', zIndex:2 }}>🔒</span>
   );
@@ -275,7 +278,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
   const [huntDate, setHuntDate] = useState(null);
   const [huntTargetVid, setHuntTargetVid] = useState(null);
   const [colorDistributions, setColorDistributions] = useState({});
-  const [uiOpen, setUiOpen] = useState(false);
+  const [mandalaState, setMandalaState]      = useState('hidden');
   const [transitioning, setTransitioning] = useState(false);
   const [transitionPhase, setTransitionPhase] = useState('');
   const [fireflagRemaining, setFireflagRemaining] = useState(null);
@@ -403,41 +406,38 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     });
   }, [activeRankings, rankToCoord]);
 
-  // ── MANDALA CONTROL CENTER — open/close the bloomed UI. Reports uiOpen to
-  // App.js (for BNavigation visibility) via an effect rather than calling
-  // onUIStateChange inline here, since calling a parent's setState from
-  // inside a child event handler that also touches sibling state is easy to
-  // get right but calling it from inside a *functional updater* (as an
-  // earlier version of toggleUI did) isn't — React flags that as updating
-  // a different component while rendering.
+  // ── MANDALA CONTROL CENTER — bloom/retreat state machine (Design OS).
+  // 'hidden' → 'bloom' (tap) → 'retreat' (hold 3s) → 'hidden' (after 600ms)
   const closeUI = useCallback(() => {
-    setUiOpen(false);
+    setMandalaState('retreat');
     setDotState('single');
     setFlexWallOpen(false);
+    setTimeout(() => setMandalaState('hidden'), 600);
   }, []);
 
   const toggleUI = useCallback(() => {
-    const next = !uiOpen;
-    setUiOpen(next);
-    setDotState(next ? 'three' : 'single');
-    if (!next) setFlexWallOpen(false);
-  }, [uiOpen]);
+    const next = mandalaState === 'bloom';
+    setMandalaState(next ? 'retreat' : 'bloom');
+    setDotState(next ? 'single' : 'three');
+    if (next) setFlexWallOpen(false);
+    if (next) setTimeout(() => setMandalaState('hidden'), 600);
+  }, [mandalaState]);
 
   useEffect(() => {
-    if (onUIStateChange) onUIStateChange(uiOpen);
-  }, [uiOpen, onUIStateChange]);
+    if (onUIStateChange) onUIStateChange(mandalaState);
+  }, [mandalaState, onUIStateChange]);
 
   // Hides peripheral single-card chrome (RANDOM/ZOOM/hint) while the
   // Mandala Control Center is bloomed open, so it doesn't compete with the
   // category strip / action row / profile row.
-  const chromeHidden = uiOpen;
+  const chromeHidden = mandalaState === 'bloom';
 
   // Auto-scroll category strip so active pill is centered when UI opens or category changes
   useEffect(() => {
-    if (!uiOpen) return;
+    if (mandalaState !== 'bloom') return;
     const el = categoryPillRefs.current[selectedCategory];
     if (el) el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-  }, [uiOpen, selectedCategory]);
+  }, [mandalaState, selectedCategory]);
 
   // ── PERSONAL BEST DATA — fetch when my-best map is active ─────────────
   useEffect(() => {
@@ -697,7 +697,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         const canvas = await html2canvas(markCaptureRef.current, { backgroundColor: null, useCORS: true });
         const ctx = canvas.getContext('2d');
         ctx.font = 'bold 16px Arial';
-        ctx.fillStyle = '#C9A84C';
+        ctx.fillStyle = '#F0C040';
         ctx.textAlign = 'right';
         ctx.shadowColor = 'rgba(0,0,0,0.6)';
         ctx.shadowBlur = 4;
@@ -908,7 +908,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
   const getColorHex = (name) => ({
     red:'#E74C3C', blue:'#2980B9', green:'#27AE60',
-    yellow:'#F1C40F', black:'#2C2C2C', white:'#FFFFFF', gold:'#C9A84C'
+    yellow:'#F1C40F', black:'#2C2C2C', white:'#FFFFFF', gold:'#F0C040'
   }[name] || '#555555');
 
   // ── FIREFLAGS ─────────────────────────────────────────────────────────────
@@ -1094,7 +1094,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       </button>
 
       <div style={{ position:'absolute', top:'64px', left:'50%', transform:'translateX(-50%)',
-                    color:'#C9A84C', fontSize:'clamp(24px,6vw,56px)', fontWeight:'bold',
+                    color:'#F0C040', fontSize:'clamp(24px,6vw,56px)', fontWeight:'bold',
                     letterSpacing:'12px', textAlign:'center', lineHeight:1.2,
                     opacity: blend, transition:'opacity 0.6s ease',
                     animation: blend >= 1 ? 'goldPulse 3s ease-in-out infinite' : 'none' }}>
@@ -1119,7 +1119,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                style={{ position:'absolute', left:`${x}%`, top:`${y}%`,
                         transform:'translate(-50%,-50%)', width:'32px', height:'18px',
                         overflow:'hidden', cursor:'pointer', borderRadius:'1px',
-                        border: video.rank === currentRank ? '1px solid #C9A84C' : '1px solid #222',
+                        border: video.rank === currentRank ? '1px solid #F0C040' : '1px solid #222',
                         boxShadow: darkMode && flagged ? '0 0 20px rgba(243,156,18,0.4)' : 'none',
                         transition:'left 0.7s ease, top 0.7s ease', zIndex:5 }}>
             {video.thumbnail_url &&
@@ -1135,8 +1135,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
       <style>{`
         @keyframes goldPulse {
-          0%,100% { text-shadow: 0 0 40px #C9A84C; }
-          50%      { text-shadow: 0 0 80px #C9A84C, 0 0 120px #C9A84C; }
+          0%,100% { text-shadow: 0 0 40px #F0C040; }
+          50%      { text-shadow: 0 0 80px #F0C040, 0 0 120px #F0C040; }
         }
       `}</style>
     </div>
@@ -1146,7 +1146,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
     return (
       <div style={{ width:'100vw', height:'100vh', backgroundColor:'#0A0A0A',
                     display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <div style={{ color:'#C9A84C', fontSize:'14px', letterSpacing:'4px' }}>
+        <div style={{ color:'#F0C040', fontSize:'14px', letterSpacing:'4px' }}>
           LOADING...
         </div>
       </div>
@@ -1188,9 +1188,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       <div style={{ width:'100vw', height:'100vh', backgroundColor:'#000000',
                     display:'flex', alignItems:'center', justifyContent:'center',
                     position:'fixed', inset:0, zIndex:200 }}>
-        <div style={{ fontFamily:'Pacifico, cursive', color:'#C8A951',
+        <div style={{ fontFamily:'Pacifico, cursive', color:'#F0C040',
                       fontSize:'clamp(28px,7vw,56px)',
-                      textShadow:'0 0 40px #C9A84C',
+                      textShadow:'0 0 40px #F0C040',
                       animation:'logoFlash 0.3s ease' }}>
           BEST
         </div>
@@ -1212,9 +1212,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           opacity: dropSpring.p.to(p => Math.max(0, 1 - p * 1.3)),
           transform: dropSpring.p.to(p => `scale(${0.25 + p * p * 1.6}) translateY(${(1 - p) * -15}%)`),
         }}>
-          <div style={{ color:'#C9A84C', fontSize:'clamp(28px,7vw,64px)', fontWeight:'bold',
+          <div style={{ color:'#F0C040', fontSize:'clamp(28px,7vw,64px)', fontWeight:'bold',
                         letterSpacing:'14px', textAlign:'center', lineHeight:1.2,
-                        textShadow:'0 0 40px #C9A84C' }}>
+                        textShadow:'0 0 40px #F0C040' }}>
             WORLD<br/>BEST
           </div>
         </animated.div>
@@ -1248,7 +1248,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         {renderFormation(1, (v) => playDropAnimation(v.rank), 'TAP ANY VIDEO TO EXPLORE')}
         <div style={{ position:'fixed', bottom:'40px', left:'50%', transform:'translateX(-50%)',
                       zIndex:10, pointerEvents:'none', animation:'fadeIn 0.6s ease' }}>
-          <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C9A84C',
+          <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
                         fontSize:'9px', letterSpacing:'6px', textAlign:'center',
                         textShadow:'0 0 12px rgba(201,168,76,0.5)' }}>
             GLOBAL RANKING · {totalRanks} VIDEOS
@@ -1306,7 +1306,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                  onClick={() => { if (!isEmpty) navigateToCoord(cellX, cellY); }}
                  style={{ position:'relative', overflow:'hidden', cursor: !isEmpty ? 'pointer' : 'default',
                           backgroundColor: darkMode ? '#000000' : '#111',
-                          border: isCenter ? '2px solid #C9A84C' : '1px solid #222',
+                          border: isCenter ? '2px solid #F0C040' : '1px solid #222',
                           boxShadow: darkMode && flagged ? '0 0 20px rgba(243,156,18,0.4)' : 'none',
                           transform: isCenter ? 'scale(1.04)' : 'scale(1)',
                           transition:'transform 0.2s', zIndex: isCenter ? 2 : 1 }}>
@@ -1332,7 +1332,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                   )}
                   {risingVideos.some(r => r.video_id === v?.video_id) && (
                     <div style={{ position:'absolute', top:'2px', right:'2px',
-                                  fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+                                  fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
                                   fontSize:'12px', lineHeight:1, textShadow:'0 0 4px rgba(0,0,0,0.8)' }}>
                       ↗
                     </div>
@@ -1386,13 +1386,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       <div className="cinematic-vignette" />
 
       {/* MAP INDICATOR PILL — shows current map when UI is open */}
-      {uiOpen && (
+      {mandalaState === 'bloom' && (
         <div style={{ position:'fixed', top:'60px', left:'50%', transform:'translateX(-50%)',
                       zIndex:160, backgroundColor:'rgba(13,8,0,0.85)',
-                      border:'1px solid #C8A951', borderRadius:'16px',
+                      border:'1px solid #F0C040', borderRadius:'16px',
                       padding:'6px 20px', pointerEvents:'none',
                       animation:'fadeInSimple 0.3s ease' }}>
-          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
                          fontSize:'12px', letterSpacing:'4px' }}>
             {MAP_LABELS[currentMap] || currentMap.toUpperCase()}
           </span>
@@ -1401,7 +1401,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
       {/* MANDALA CONTROL CENTER — TOP BAR: category strip (left) slides down,
           profile + utility row (right) fades in from the left */}
-      {uiOpen && (
+      {mandalaState === 'bloom' && (
         <div style={{ position:'fixed', top:0, left:0, right:0, zIndex:150,
                       padding:'10px 16px', display:'flex', alignItems:'center',
                       justifyContent:'space-between', gap:'12px',
@@ -1419,8 +1419,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 onClick={(e) => { e.stopPropagation(); if (onSelectCategory) onSelectCategory(cat.value); }}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault();
                   if (onSelectCategory) onSelectCategory(cat.value); }}
-                style={{ backgroundColor: selectedCategory === cat.value ? '#C8A951' : 'transparent',
-                         color: selectedCategory === cat.value ? '#0D0800' : '#C8A951',
+                style={{ backgroundColor: selectedCategory === cat.value ? '#F0C040' : 'transparent',
+                         color: selectedCategory === cat.value ? '#0D0800' : '#F0C040',
                          border: selectedCategory === cat.value ? 'none' : '1px solid #333',
                          padding:'5px 14px', cursor:'pointer', flexShrink:0,
                          fontFamily:'Bebas Neue, sans-serif', fontSize:'11px',
@@ -1441,7 +1441,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               flex.photo_url && (
                 <img key={flex.id || i} src={flex.photo_url} alt=""
                      style={{ width:'22px', height:'22px', borderRadius:'50%',
-                              objectFit:'cover', border:'1px solid #C8A951',
+                              objectFit:'cover', border:'1px solid #F0C040',
                               animation:`fadeInLeft 0.35s ease-out ${i * 0.08}s both` }} />
               )
             ))}
@@ -1454,30 +1454,30 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                    window.open(`https://youtube.com/watch?v=${currentVideo.video_id}`, '_blank'); }}
                  title="Watch on YouTube"
                  style={microNavStyle}>
-              <span style={{ color:'#C8A951', fontSize:'12px', lineHeight:1 }}>▶</span>
+              <span style={{ color:'#F0C040', fontSize:'12px', lineHeight:1 }}>▶</span>
             </div>
 
             <div onClick={(e) => { e.stopPropagation(); if (onToggleHunt) onToggleHunt(); }}
                  onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); if (onToggleHunt) onToggleHunt(); }}
                  title={huntActive ? 'Stop hunt' : 'Start hunt'}
                  style={{ ...microNavStyle,
-                          borderColor: huntActive ? '#C9A84C' : '#555',
+                          borderColor: huntActive ? '#F0C040' : '#555',
                           boxShadow: huntActive ? '0 0 6px rgba(201,168,76,0.7)' : 'none' }}>
-              <span style={{ fontSize:'10px', color: huntActive ? '#C9A84C' : '#555' }}>▲</span>
+              <span style={{ fontSize:'10px', color: huntActive ? '#F0C040' : '#555' }}>▲</span>
             </div>
 
             <div onClick={(e) => { e.stopPropagation(); if (onToggleDarkMode) onToggleDarkMode(); }}
                  onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); if (onToggleDarkMode) onToggleDarkMode(); }}
                  title={darkMode ? 'Dark mode on' : 'Dark mode off'}
                  style={{ ...microNavStyle,
-                          borderColor: darkMode ? '#C9A84C' : '#555',
+                          borderColor: darkMode ? '#F0C040' : '#555',
                           boxShadow: darkMode ? '0 0 6px rgba(201,168,76,0.7)' : 'none' }}>
               <span style={{ fontSize:'10px' }}>{darkMode ? '●' : '○'}</span>
             </div>
 
             {userEmail ? (
               <>
-                <span style={{ color:'#C9A84C', fontSize:'9px', letterSpacing:'1px', maxWidth:'80px',
+                <span style={{ color:'#F0C040', fontSize:'9px', letterSpacing:'1px', maxWidth:'80px',
                                overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
                   {userEmail}
                 </span>
@@ -1492,7 +1492,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             ) : (
               <>
                 <a href="/login" onClick={(e) => e.stopPropagation()}
-                   style={{ color:'#C9A84C', fontSize:'9px', letterSpacing:'1px', textDecoration:'none' }}>
+                   style={{ color:'#F0C040', fontSize:'9px', letterSpacing:'1px', textDecoration:'none' }}>
                   SIGN IN
                 </a>
                 <a href="/register" onClick={(e) => e.stopPropagation()}
@@ -1506,16 +1506,16 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       )}
 
       {/* MANDALA CONTROL CENTER — RIGHT: FLEX wall slide-in tab */}
-      {uiOpen && !flexWallOpen && flexList.length > 0 && (
+      {mandalaState === 'bloom' && !flexWallOpen && flexList.length > 0 && (
         <div onClick={(e) => { e.stopPropagation(); setFlexWallOpen(true); }}
              onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setFlexWallOpen(true); }}
              style={{ position:'fixed', top:'50%', right:0, transform:'translateY(-50%)',
                       zIndex:150, backgroundColor:'rgba(13,8,0,0.9)',
-                      border:'1px solid #C8A951', borderRight:'none',
+                      border:'1px solid #F0C040', borderRight:'none',
                       borderRadius:'8px 0 0 8px', padding:'10px 6px',
                       cursor:'pointer', animation:'fadeInLeft 0.3s ease-out',
                       writingMode:'vertical-rl', textOrientation:'mixed' }}>
-          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
                          fontSize:'10px', letterSpacing:'2px' }}>
             {flexList.length} FLEX WALL
           </span>
@@ -1547,11 +1547,23 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 pointerEvents:'none' }} />
 </div>
 
+        {/* Design OS — Rising Fast Badge */}
+        <RisingFastBadge visible={risingVideos.some(r => r.video_id === currentVideo.video_id) && !focusMode} />
+
+        {/* Design OS — Metric Stack (right edge) */}
+        {!focusMode && (
+          <MetricStack
+            fireflagCount={currentVideo.fireflag_count || 0}
+            flexCount={flexList.length}
+            shareCount={0}
+          />
+        )}
+
         {/* BEST LOGO */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center',
                       fontFamily:'Pacifico, cursive',
                       fontSize: focusMode ? '24px' : '48px', color:'#F5E6C8',
-                      textShadow:'2px 2px 0 #C8A951, 4px 4px 0 #B8860B, 6px 6px 0 #8B6914, 8px 8px 0 rgba(0,0,0,0.5)',
+                      textShadow:'2px 2px 0 #F0C040, 4px 4px 0 #B8860B, 6px 6px 0 #8B4513, 8px 8px 0 rgba(0,0,0,0.5)',
                       marginBottom:'8px',
                       transition:'all 0.8s ease-out',
                       transform: focusMode ?
@@ -1561,17 +1573,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           BEST
         </div>
 
-        {/* RANK NUMBER */}
+        {/* RANK NUMBER — Design OS 3-layer embossed letterpress */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
-          <div className={currentVideo.rank === 1 ? 'embossed-rank-1' : undefined}
-               style={{ ...rankStyle,
-                        animation: currentVideo.rank === 1 ? 'pulse 3s infinite' : 'none',
-                        transition:'all 0.8s ease-out',
-                        fontSize: focusMode ? '36px' : rankStyle.fontSize,
-                        transform: focusMode ? 'translateX(40vw)' : 'translateX(0)',
-                        opacity: focusMode ? 0.4 : 1 }}>
-            #{currentVideo.rank}
-          </div>
+          <RankNumber rank={currentVideo.rank} compact={focusMode} />
 
           {/* CURVED SWOOSH */}
           <svg width="200" height="40" viewBox="0 0 200 40"
@@ -1579,9 +1583,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                         transition:'opacity 0.5s ease',
                         opacity: focusMode ? 0 : 1 }}>
             <path d="M 20 10 Q 100 40 180 10"
-                  stroke="#C8A951" strokeWidth="3" fill="none" strokeLinecap="round" />
+                  stroke="#F0C040" strokeWidth="3" fill="none" strokeLinecap="round" />
             <path d="M 175 5 Q 185 10 180 20"
-                  stroke="#C8A951" strokeWidth="3" fill="none" strokeLinecap="round" />
+                  stroke="#F0C040" strokeWidth="3" fill="none" strokeLinecap="round" />
           </svg>
 
           <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F5E6C8',
@@ -1598,14 +1602,14 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           {flexList.length > 0 && (
             <div onClick={() => setFlexWallOpen(true)}
                  onTouchEnd={(e) => { e.preventDefault(); setFlexWallOpen(true); }}
-                 style={{ color:'#C8A951', fontFamily:'Bebas Neue,sans-serif',
+                 style={{ color:'#F0C040', fontFamily:'Bebas Neue,sans-serif',
                           fontSize:11, letterSpacing:3, cursor:'pointer',
                           textAlign:'center', marginTop:8 }}>
               {flexList.length} FLEXES — TAP TO SEE
             </div>
           )}
 
-          <div style={{ fontFamily:'Arial, sans-serif', color:'#C8A951',
+          <div style={{ fontFamily:'Arial, sans-serif', color:'#F0C040',
                         letterSpacing:'4px', textTransform:'uppercase',
                         textAlign:'center', marginTop:'6px',
                         transition:'all 0.5s ease',
@@ -1627,7 +1631,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 width: '100%', maxWidth: '340px', margin: '0 auto',
                 padding: '6px 12px',
                 backgroundColor: 'rgba(13,8,0,0.75)',
-                border: '1px solid rgba(200,169,81,0.2)',
+                border: '1px solid rgba(240,192,64,0.2)',
                 borderRadius: '4px',
                 backdropFilter: 'blur(4px)',
                 transition: 'opacity 0.5s ease',
@@ -1636,7 +1640,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 {/* LEFT — RISING FAST */}
                 <div style={{
                   fontFamily: 'Bebas Neue, sans-serif',
-                  color: isRising ? '#C8A951' : 'transparent',
+                  color: isRising ? '#F0C040' : 'transparent',
                   fontSize: '10px', letterSpacing: '2px',
                   animation: isRising ? 'risingPulse 2s ease-in-out infinite' : 'none',
                   minWidth: '70px',
@@ -1702,16 +1706,16 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 {currentVideo.total_score}
               </span>
               <div style={{ width:'56px', height:'2px',
-                            background:'linear-gradient(to right, transparent, #C8A951, #C8A951, transparent)' }} />
+                            background:'linear-gradient(to right, transparent, #F0C040, #F0C040, transparent)' }} />
               <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px',
-                            color:'#8B6914', letterSpacing:'1px' }}>
+                            color:'#8B4513', letterSpacing:'1px' }}>
                 100
               </span>
             </div>
-            <div style={{ textAlign:'center', color:'#C8A951', fontSize:'14px', marginTop:'6px' }}>
+            <div style={{ textAlign:'center', color:'#F0C040', fontSize:'14px', marginTop:'6px' }}>
               ★
             </div>
-            <div style={{ textAlign:'center', color:'#C8A951', fontSize:'8px',
+            <div style={{ textAlign:'center', color:'#F0C040', fontSize:'8px',
                           letterSpacing:'3px', marginTop:'4px' }}>
               GLOBAL COMMUNITY VOTES
             </div>
@@ -1721,7 +1725,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         {/* YOUTUBE LINK — red circular play button. Visible only when the
             Mandala UI is closed. When the mandala opens, WATCH becomes
             the 3rd medallion (bottom-center-right) in MandalaFrameRings. */}
-        {!uiOpen && (
+        {mandalaState !== 'bloom' && (
           <button
             onClick={(e) => { e.stopPropagation();
               window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); }}
@@ -1785,7 +1789,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         <div style={{ position:'absolute', bottom:'120px', right:'16px', zIndex:9,
                       display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'6px' }}>
           {fireflagRemaining !== null && (
-            <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951',
+            <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
                            fontSize:'9px', letterSpacing:'2px', opacity:0.7 }}>
               {fireflagRemaining} FLAGS LEFT
             </span>
@@ -1811,7 +1815,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           same way as the prompt above so it doesn't sit under the FLEX
           ring opening. */}
       {isFlagged && (
-        <div style={{ position:'absolute', bottom: uiOpen ? '120px' : '16px', right:'16px', zIndex:9 }}>
+        <div style={{ position:'absolute', bottom: mandalaState === 'bloom' ? '120px' : '16px', right:'16px', zIndex:9 }}>
           <FireflagIcon
             size={20}
             glow={darkMode}
@@ -1874,7 +1878,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       {dotState !== 'hidden' && !showColorWheel && (
         <div style={{ position:'absolute', bottom:'120px', right:'24px', zIndex:10 }}>
 
-          <MandalaButton onClick={toggleUI} onHold={closeUI} isOpen={uiOpen} />
+          <MandalaButton onClick={toggleUI} onHold={closeUI} isOpen={mandalaState === 'bloom'} />
 
           {dotState === 'single' && discoveryScore > 0 && (() => {
             const milestones = [[100,'EXPLORER'],[200,'SCOUT'],[500,'GOLD'],[750,'LEGEND'],[1000,'ORACLE']];
@@ -1887,9 +1891,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             return (
               <div style={{ marginTop:'8px', width:'48px', textAlign:'center' }}>
                 <div style={{ height:'3px', backgroundColor:'#1A1A1A', borderRadius:'2px', overflow:'hidden', marginBottom:'3px' }}>
-                  <div style={{ height:'100%', width:`${pct}%`, backgroundColor:'#C8A951', transition:'width 0.5s ease' }} />
+                  <div style={{ height:'100%', width:`${pct}%`, backgroundColor:'#F0C040', transition:'width 0.5s ease' }} />
                 </div>
-                <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#C8A951', fontSize:'7px', letterSpacing:'1px' }}>
+                <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040', fontSize:'7px', letterSpacing:'1px' }}>
                   {label} {discoveryScore}/{threshold}
                 </span>
               </div>
@@ -1901,7 +1905,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             <div style={{ position:'fixed', bottom:'170px', left:'50%', transform:'translateX(-50%)',
                           display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', zIndex:156 }}>
               {personalBestPointsFlash && (
-                <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',
+                <span style={{ color:'#F0C040', fontSize:'12px', fontWeight:'bold',
                                letterSpacing:'1px', animation:'fadeIn 0.2s ease',
                                textShadow:'0 0 8px rgba(201,168,76,0.6)' }}>
                   +50 DISCOVERY
@@ -1923,7 +1927,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             <div style={{ position:'fixed', bottom:'170px', left:'50%', transform:'translateX(-50%)',
                           display:'flex', flexDirection:'column', alignItems:'center', gap:'4px', zIndex:156 }}>
               {flexPointsFlash && (
-                <span style={{ color:'#C9A84C', fontSize:'12px', fontWeight:'bold',
+                <span style={{ color:'#F0C040', fontSize:'12px', fontWeight:'bold',
                                letterSpacing:'1px', animation:'fadeIn 0.2s ease',
                                textShadow:'0 0 8px rgba(201,168,76,0.6)' }}>
                   +10 DISCOVERY
@@ -1944,7 +1948,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           bottom-right corner, then MARK/MY 100/WATCH/FLEX open along the bottom
           edge (4 medallions centered with 18px gap). */}
       <MandalaFrameRings
-        open={uiOpen}
+        open={mandalaState === 'bloom'}
         openings={[
           {
             position: 'bottom-left',
@@ -1953,8 +1957,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             onTouchEnd: (e) => { e.preventDefault(); openColorWheel(e); },
             icon: (
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="10" r="6" stroke="#C8A951" strokeWidth="1.5" fill="none" />
-                <circle cx="12" cy="10" r="2" fill="#C8A951" opacity="0.6" />
+                <circle cx="12" cy="10" r="6" stroke="#F0C040" strokeWidth="1.5" fill="none" />
+                <circle cx="12" cy="10" r="2" fill="#F0C040" opacity="0.6" />
                 <circle cx="7" cy="14" r="2.5" fill="#E74C3C" opacity="0.7" />
                 <circle cx="17" cy="14" r="2" fill="#2980B9" opacity="0.7" />
                 <circle cx="12" cy="18" r="1.5" fill="#27AE60" opacity="0.7" />
@@ -1967,7 +1971,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             onClick: (e) => addToPersonalBest(e, currentVideo),
             onTouchEnd: (e) => { e.preventDefault(); addToPersonalBest(e, currentVideo); },
             icon: (
-              <span style={{ color:'#C8A951', fontSize:'24px', fontWeight:'bold', lineHeight:1 }}>
+              <span style={{ color:'#F0C040', fontSize:'24px', fontWeight:'bold', lineHeight:1 }}>
                 {personalBestVideos[currentVideo.video_id] ? '✓' : '+'}
               </span>
             ),
@@ -1979,7 +1983,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             onTouchEnd: (e) => { e.stopPropagation(); e.preventDefault(); playWatchSound(); window.open('https://youtube.com/watch?v=' + currentVideo.video_id, '_blank'); },
             icon: (
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <polygon points="8,5 19,12 8,19" fill="#C8A951" />
+                <polygon points="8,5 19,12 8,19" fill="#F0C040" />
               </svg>
             ),
           },
@@ -2096,7 +2100,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                         borderRadius:'4px', boxShadow:'0 0 40px rgba(0,0,0,0.6)' }} />
           <div style={{ display:'flex', gap:'12px', marginTop:'32px' }}>
             <button onClick={() => handleSaveToGallery(markSnapshotUrl, markVideo)}
-              style={{ backgroundColor:'#C9A84C', color:'#0A0A0A', border:'none',
+              style={{ backgroundColor:'#F0C040', color:'#0A0A0A', border:'none',
                        padding:'12px 20px', borderRadius:'20px', fontSize:'11px',
                        fontWeight:'bold', letterSpacing:'2px', cursor:'pointer' }}>
               SAVE TO GALLERY
@@ -2115,7 +2119,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       {flexOpen && (
         <div style={{ position:'fixed', right:0, top:'50%', transform:'translateY(-50%)',
                       width:'160px', minHeight:'240px', backgroundColor:'#0D0800',
-                      border:'1px solid #C8A951', borderRight:'none',
+                      border:'1px solid #F0C040', borderRight:'none',
                       borderRadius:'8px 0 0 8px', zIndex:300,
                       display:'flex', flexDirection:'column', alignItems:'center',
                       padding:'14px 10px', boxSizing:'border-box',
@@ -2142,12 +2146,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           {flexSnapped && flexSnapshotUrl ? (
             <img src={flexSnapshotUrl} alt="Flex snapshot"
                  style={{ width:'120px', height:'120px', borderRadius:'50%',
-                          objectFit:'cover', border:'1px solid #C8A951',
+                          objectFit:'cover', border:'1px solid #F0C040',
                           margin:'24px 0 8px', transform:'scaleX(-1)' }} />
           ) : (
             <video ref={flexVideoRef} playsInline muted autoPlay
                    style={{ width:'120px', height:'120px', borderRadius:'50%',
-                            objectFit:'cover', border:'1px solid #C8A951',
+                            objectFit:'cover', border:'1px solid #F0C040',
                             backgroundColor:'#000', margin:'24px 0 8px',
                             transform:'scaleX(-1)' }} />
           )}
@@ -2165,9 +2169,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 onClick={(e) => { e.stopPropagation(); setFlexOverlay(ov); }}
                 onTouchEnd={(e) => { e.stopPropagation(); e.preventDefault(); setFlexOverlay(ov); }}
                 style={{ flexShrink:0, width:'32px', height:'32px', borderRadius:'50%',
-                         backgroundColor: flexOverlay === ov ? '#C8A951' : 'transparent',
+                         backgroundColor: flexOverlay === ov ? '#F0C040' : 'transparent',
                          border: flexOverlay === ov ? 'none' : '1px solid #3a2f14',
-                         color: ov === 'none' ? '#C8A951' : '#F5E6C8',
+                         color: ov === 'none' ? '#F0C040' : '#F5E6C8',
                          fontSize:'9px', fontFamily:'Bebas Neue, sans-serif',
                          letterSpacing:'1px', cursor:'pointer', padding:0,
                          display:'flex', alignItems:'center', justifyContent:'center' }}>
@@ -2180,7 +2184,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             <button onClick={postFlex}
               onTouchEnd={(e) => { e.preventDefault(); postFlex(); }}
               style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'3px',
-                       color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
+                       color:'#0D0800', backgroundColor:'#F0C040', border:'none', borderRadius:0,
                        padding:'10px 20px', minWidth:'44px', minHeight:'44px',
                        cursor:'pointer', opacity: flexStickerDrop ? 0.6 : 1 }}>
               {flexStickerDrop ? 'FLEXING…' : 'FLEX IT'}
@@ -2189,7 +2193,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             <button onClick={snapFlexPhoto}
               onTouchEnd={(e) => { e.preventDefault(); snapFlexPhoto(); }}
               style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'3px',
-                       color:'#C8A951', backgroundColor:'transparent', border:'1px solid #C8A951',
+                       color:'#F0C040', backgroundColor:'transparent', border:'1px solid #F0C040',
                        borderRadius:0, padding:'6px 16px', minWidth:'44px', minHeight:'44px',
                        cursor:'pointer' }}>
               SNAP
@@ -2203,7 +2207,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         <div style={{ position:'fixed', inset:0, zIndex:301, pointerEvents:'none',
                       display:'flex', alignItems:'center', justifyContent:'center' }}>
           <span style={{ fontSize:'72px', animation:'flexStickerDrop 0.8s ease-out',
-                         textShadow:'0 0 30px rgba(200,169,81,0.8)' }}>
+                         textShadow:'0 0 30px rgba(240,192,64,0.8)' }}>
             {flexOverlay}
           </span>
         </div>
@@ -2212,12 +2216,12 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       {/* PROGRESSIVE REGISTRATION SHEET — slides up on gated actions */}
       {regSheetOpen && (
         <div style={{ position:'fixed', bottom:0, left:0, right:0, height:'220px',
-                      backgroundColor:'#0D0800', borderTop:'2px solid #C8A951',
+                      backgroundColor:'#0D0800', borderTop:'2px solid #F0C040',
                       zIndex:400, display:'flex', flexDirection:'column',
                       alignItems:'center', justifyContent:'center', gap:'10px',
                       animation:'regSheetUp 0.3s ease-out',
                       boxShadow:'0 -10px 40px rgba(0,0,0,0.7)' }}>
-          <span style={{ fontFamily:'Pacifico, cursive', color:'#C8A951',
+          <span style={{ fontFamily:'Pacifico, cursive', color:'#F0C040',
                          fontSize:'28px', lineHeight:1 }}>BEST</span>
           <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F5E6C8',
                          fontSize:'14px', letterSpacing:'3px' }}>
@@ -2231,14 +2235,14 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             <button onClick={() => { window.location.href = '/register'; }}
               onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/register'; }}
               style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'13px', letterSpacing:'3px',
-                       color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
+                       color:'#0D0800', backgroundColor:'#F0C040', border:'none', borderRadius:0,
                        padding:'8px 28px', minWidth:'44px', minHeight:'44px', cursor:'pointer' }}>
               SIGN UP
             </button>
             <button onClick={() => { window.location.href = '/login'; }}
               onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/login'; }}
               style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'13px', letterSpacing:'3px',
-                       color:'#C8A951', backgroundColor:'transparent', border:'1px solid #C8A951',
+                       color:'#F0C040', backgroundColor:'transparent', border:'1px solid #F0C040',
                        borderRadius:0, padding:'8px 28px', minWidth:'44px', minHeight:'44px',
                        cursor:'pointer' }}>
               LOG IN
@@ -2262,7 +2266,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                       zIndex:250, overflow:'hidden' }}>
           <div style={{ position:'absolute', top:16, left:0, right:0,
                         textAlign:'center', fontFamily:'Bebas Neue,sans-serif',
-                        color:'#C8A951', fontSize:16, letterSpacing:4 }}>
+                        color:'#F0C040', fontSize:16, letterSpacing:4 }}>
             {flexList.length} FLEXES · TAP TO CLOSE
           </div>
           {flexList.slice(0, 12).map((flex, i) => {
@@ -2278,7 +2282,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 <img src={flex.photo_url} alt="flex"
                      style={{ width:52, height:52, borderRadius:'50%',
                               objectFit:'cover',
-                              border:'2px solid #C8A951' }}/>
+                              border:'2px solid #F0C040' }}/>
                 {flex.overlay_type && flex.overlay_type !== 'none' && (
                   <span style={{ position:'absolute', bottom:-4, right:-4,
                                  fontSize:16 }}>
@@ -2299,7 +2303,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
              onClick={() => setRegSheetOpen(false)}>
           <div onClick={(e) => e.stopPropagation()}
                style={{ width:'100%', maxWidth:'480px', backgroundColor:'#0D0800',
-                        border:'1px solid #C8A951', borderBottom:'none',
+                        border:'1px solid #F0C040', borderBottom:'none',
                         borderRadius:'16px 16px 0 0', padding:'28px 24px 32px',
                         textAlign:'center', animation:'slideUpSheet 0.25s ease-out' }}>
             <div style={{ width:'36px', height:'4px', backgroundColor:'#333',
@@ -2317,7 +2321,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 onClick={() => { window.location.href = '/register'; }}
                 onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/register'; }}
                 style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
-                         color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
+                         color:'#0D0800', backgroundColor:'#F0C040', border:'none', borderRadius:0,
                          padding:'14px', minHeight:'44px', cursor:'pointer' }}>
                 SIGN UP
               </button>
@@ -2325,7 +2329,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 onClick={() => { window.location.href = '/login'; }}
                 onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/login'; }}
                 style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
-                         color:'#C8A951', backgroundColor:'transparent', border:'1px solid #C8A951',
+                         color:'#F0C040', backgroundColor:'transparent', border:'1px solid #F0C040',
                          borderRadius:0, padding:'14px', minHeight:'44px', cursor:'pointer' }}>
                 LOG IN
               </button>
@@ -2344,8 +2348,8 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
       <style>{`
         @keyframes pulse {
-          0%,100% { text-shadow: 0 0 40px #C9A84C; }
-          50%      { text-shadow: 0 0 80px #C9A84C, 0 0 120px #C9A84C; }
+          0%,100% { text-shadow: 0 0 40px #F0C040; }
+          50%      { text-shadow: 0 0 80px #F0C040, 0 0 120px #F0C040; }
         }
         @keyframes risingPulse {
           0%,100% { opacity: 1; }

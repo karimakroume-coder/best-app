@@ -12,8 +12,8 @@ import React from 'react';
 //   <VaultPill currentMap={currentMap} />
 //   <HeaderCrest currentMap={currentMap} setCurrentMap={setCurrentMap} />
 
-const GOLD = '#C9A84C';
-const GOLD_DARK = '#C8A951';
+const GOLD = '#F0C040';
+const GOLD_DARK = '#F0C040';
 const CREAM = '#F5E6C8';
 const DARK = '#0D0800';
 const SERIF = "'Cinzel', Georgia, 'Times New Roman', serif";
@@ -34,7 +34,7 @@ function Medallion({ size = 44, glyph = 'B', glyphFont = SERIF, glyphSize }) {
     <div style={{
       width: size, height: size, borderRadius: '50%', position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'radial-gradient(circle at 32% 28%, #F5E6C8 0%, #C9A84C 40%, #8B6914 100%)',
+      background: 'radial-gradient(circle at 32% 28%, #F5E6C8 0%, #F0C040 40%, #8B4513 100%)',
       boxShadow: '0 0 14px rgba(201,168,76,0.45), inset 0 0 6px rgba(0,0,0,0.45)',
     }}>
       <div style={{
@@ -88,7 +88,7 @@ export function VaultPill({ currentMap = 'world-best', displayName = '' }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: '8px',
-      backgroundColor: 'rgba(13,8,0,0.85)', border: '1px solid #C8A951',
+      backgroundColor: 'rgba(13,8,0,0.85)', border: '1px solid #F0C040',
       borderRadius: '999px', padding: '4px 12px 4px 6px',
       boxShadow: '0 0 10px rgba(201,168,76,0.15)',
     }}>

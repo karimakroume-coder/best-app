@@ -26,7 +26,7 @@ function pad(n) {
 function TimeBlock({ value, label }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <span style={{ color: '#C9A84C', fontSize: 'clamp(36px, 8vw, 72px)',
+      <span style={{ color: '#F0C040', fontSize: 'clamp(36px, 8vw, 72px)',
                      fontWeight: 'bold', letterSpacing: '2px', lineHeight: 1,
                      fontVariantNumeric: 'tabular-nums' }}>
         {value}
@@ -81,7 +81,7 @@ function Countdown() {
                   padding: '32px 24px', boxSizing: 'border-box', textAlign: 'center' }}>
 
       {/* LOGO */}
-      <div style={{ color: '#C9A84C', fontSize: '20px', fontWeight: 'bold',
+      <div style={{ color: '#F0C040', fontSize: '20px', fontWeight: 'bold',
                     letterSpacing: '8px' }}>
         BEST
       </div>
@@ -90,7 +90,7 @@ function Countdown() {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
                     gap: '32px' }}>
         {timeLeft.done ? (
-          <span style={{ color: '#C9A84C', fontSize: 'clamp(28px, 6vw, 48px)',
+          <span style={{ color: '#F0C040', fontSize: 'clamp(28px, 6vw, 48px)',
                          letterSpacing: '4px', fontWeight: 'bold' }}>
             BEST IS LIVE
           </span>
@@ -118,7 +118,7 @@ function Countdown() {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
                       marginTop: '16px', width: '100%', maxWidth: '360px' }}>
           {submitted ? (
-            <p style={{ color: '#C9A84C', fontSize: '13px', letterSpacing: '2px' }}>
+            <p style={{ color: '#F0C040', fontSize: '13px', letterSpacing: '2px' }}>
               {position ? `YOU ARE #${position} ON THE LIST` : 'YOU ARE ON THE LIST'}
             </p>
           ) : (
@@ -131,7 +131,7 @@ function Countdown() {
                          color: '#FFFFFF', fontSize: '14px', outline: 'none',
                          boxSizing: 'border-box', textAlign: 'center' }} />
               <button onClick={handleSubmit} disabled={submitting}
-                style={{ width: '100%', padding: '14px', backgroundColor: '#C9A84C',
+                style={{ width: '100%', padding: '14px', backgroundColor: '#F0C040',
                          border: 'none', color: '#000000', fontSize: '12px',
                          letterSpacing: '3px', cursor: 'pointer', fontWeight: 'bold' }}>
                 {submitting ? 'JOINING...' : 'JOIN THE LIST'}

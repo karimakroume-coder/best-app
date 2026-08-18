@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import WhisperCard from './WhisperCard';
 
 const SILVER = '#A8A9AD';
-const GOLD = '#C9A84C';
+const GOLD = '#F0C040';
 const CREAM = '#F5E6C8';
 const BG = '#050505';
 
@@ -98,7 +98,7 @@ function BestMap({ rankings = [], transitionPhase = '', setCurrentMap }) {
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px',
                          fontSize: '9px', letterSpacing: '2px', color: SILVER }}>
             <span style={{ width: '8px', height: '8px', backgroundColor: GOLD,
-                           boxShadow: '0 0 6px #C9A84C' }} />
+                           boxShadow: '0 0 6px #F0C040' }} />
             FOUNDING DISTRICT
           </span>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px',
@@ -150,7 +150,7 @@ function BestMap({ rankings = [], transitionPhase = '', setCurrentMap }) {
                         <div style={{ position: 'absolute', top: '3px', left: '4px',
                                       fontFamily: 'Bebas Neue, sans-serif', color: CREAM,
                                       fontSize: '11px', letterSpacing: '1px',
-                                      textShadow: '1px 1px 0 #C8A951' }}>
+                                      textShadow: '1px 1px 0 #F0C040' }}>
                           #{video.rank}
                         </div>
                         <div style={{ position: 'absolute', bottom: '4px', left: '4px', right: '4px',

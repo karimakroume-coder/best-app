@@ -7,7 +7,7 @@ const COLORS = [
   { name: 'yellow', hex: '#F1C40F' },
   { name: 'black',  hex: '#1A1A1A' },
   { name: 'white',  hex: '#FFFFFF' },
-  { name: 'gold',   hex: '#C8A951' },
+  { name: 'gold',   hex: '#F0C040' },
 ];
 
 const SLOT_H = 84;
@@ -59,7 +59,7 @@ function ColorOnboarding({ onComplete }) {
     <div style={{ position:'fixed', inset:0, zIndex:400, backgroundColor:'#0D0800',
                   display:'flex', flexDirection:'column', alignItems:'center',
                   justifyContent:'center', padding:'24px', boxSizing:'border-box' }}>
-      <div style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'28px', color:'#C8A951',
+      <div style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'28px', color:'#F0C040',
                     letterSpacing:'4px', textAlign:'center' }}>
         HOW DO YOU SEE COLOR?
       </div>
@@ -87,10 +87,10 @@ function ColorOnboarding({ onComplete }) {
                        zIndex: isDragging ? 10 : 1 }}>
               <div style={{ width:'52px', height:'52px', borderRadius:'50%',
                             backgroundColor: color.hex,
-                            border:'2px solid #C8A951',
-                            boxShadow: isDragging ? '0 0 24px rgba(200,169,81,0.9)' : '0 0 8px rgba(0,0,0,0.5)' }} />
+                            border:'2px solid #F0C040',
+                            boxShadow: isDragging ? '0 0 24px rgba(240,192,64,0.9)' : '0 0 8px rgba(0,0,0,0.5)' }} />
               <div style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'11px',
-                            color:'#C8A951', letterSpacing:'2px' }}>
+                            color:'#F0C040', letterSpacing:'2px' }}>
                 {name.toUpperCase()}
               </div>
             </div>
@@ -101,7 +101,7 @@ function ColorOnboarding({ onComplete }) {
       <button onClick={handleConfirm}
         onTouchEnd={(e) => { e.preventDefault(); handleConfirm(); }}
         style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'16px', letterSpacing:'4px',
-                 color:'#0D0800', backgroundColor:'#C8A951', border:'none', borderRadius:0,
+                 color:'#0D0800', backgroundColor:'#F0C040', border:'none', borderRadius:0,
                  padding:'14px 48px', marginTop:'28px', cursor:'pointer',
                  minWidth:'44px', minHeight:'44px' }}>
         CONFIRM

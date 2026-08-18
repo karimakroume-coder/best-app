@@ -27,7 +27,7 @@ function HuntCompass({ angleDeg, onClose }) {
     }}>
       <div style={{
         width: 80, height: 80, borderRadius: '50%',
-        border: '2px solid #C8A951',
+        border: '2px solid #F0C040',
         backgroundColor: 'rgba(13,8,0,0.9)',
         display: 'flex', alignItems: 'center',
         justifyContent: 'center', cursor: 'pointer'
@@ -37,14 +37,14 @@ function HuntCompass({ angleDeg, onClose }) {
                       transition: 'transform 0.3s ease',
                       transformOrigin: '20px 20px' }}>
           <path d="M20 4 L26 28 L20 24 L14 28 Z"
-                fill="#C8A951" stroke="#C8A951" strokeWidth="1"/>
+                fill="#F0C040" stroke="#F0C040" strokeWidth="1"/>
           <circle cx="20" cy="20" r="3" fill="#0D0800"/>
         </svg>
       </div>
       <span style={{
         fontFamily: 'Bebas Neue, sans-serif',
         fontSize: 9, letterSpacing: 3,
-        color: '#C8A951'
+        color: '#F0C040'
       }}>HUNT</span>
       {timeUntilReset ? (
         <span style={{
@@ -75,7 +75,7 @@ function HuntFoundOverlay({ rank, leaderboard, onDismiss }) {
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center',
       backgroundColor: phase === 'flash'
-        ? 'rgba(200,169,81,0.25)'
+        ? 'rgba(240,192,64,0.25)'
         : 'rgba(13,8,0,0.92)',
       transition: 'background-color 0.3s ease'
     }}>
@@ -83,7 +83,7 @@ function HuntFoundOverlay({ rank, leaderboard, onDismiss }) {
         <>
           <div style={{
             fontFamily: 'Bebas Neue, sans-serif',
-            fontSize: 32, color: '#C8A951',
+            fontSize: 32, color: '#F0C040',
             letterSpacing: 6, marginBottom: 8
           }}>HUNT COMPLETE</div>
           <div style={{
@@ -94,8 +94,8 @@ function HuntFoundOverlay({ rank, leaderboard, onDismiss }) {
           {rank && (
             <div style={{
               fontFamily: 'Bebas Neue, sans-serif',
-              fontSize: 48, color: '#C8A951',
-              textShadow: '3px 3px 0 #B8860B, 6px 6px 0 #8B6914',
+              fontSize: 48, color: '#F0C040',
+              textShadow: '3px 3px 0 #B8860B, 6px 6px 0 #8B4513',
               marginBottom: 16
             }}>#{rank}</div>
           )}
@@ -113,7 +113,7 @@ function HuntFoundOverlay({ rank, leaderboard, onDismiss }) {
               {leaderboard.slice(0, 3).map((entry, i) => (
                 <div key={i} style={{
                   fontFamily: 'Bebas Neue, sans-serif',
-                  fontSize: 13, color: i === 0 ? '#C8A951' : '#888',
+                  fontSize: 13, color: i === 0 ? '#F0C040' : '#888',
                   letterSpacing: 2, marginBottom: 4
                 }}>
                   {i + 1}. {entry.user_id?.slice(0, 8) || 'Hunter'}

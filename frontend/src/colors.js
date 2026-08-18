@@ -6,7 +6,7 @@ export const COLOR_HEX = {
   yellow: '#F1C40F',
   black:  '#2C2C2C',
   white:  '#FFFFFF',
-  gold:   '#C9A84C',
+  gold:   '#F0C040',
 };
 
 export function getColorHex(name) {

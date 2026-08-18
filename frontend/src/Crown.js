@@ -4,8 +4,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 // backend exists, so this renders mock data. Pass isActive={false} for the
 // inactive state (recommended default until a real CROWN backend exists).
 
-const GOLD = '#C9A84C';
-const GOLD_DARK = '#C8A951';
+const GOLD = '#F0C040';
+const GOLD_DARK = '#F0C040';
 const CREAM = '#F5E6C8';
 const BG = '#050505';
 const YES = '#27AE60';

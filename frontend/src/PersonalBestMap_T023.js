@@ -30,7 +30,7 @@ function PersonalBestMap({ userId, onSwitchToWorld, discoveryScore }) {
     return (
       <div style={{ position:'fixed', inset:0, backgroundColor:'#0D0800',
                     display:'flex', alignItems:'center', justifyContent:'center' }}>
-        <div style={{ fontFamily:'Pacifico,cursive', color:'#C8A951', fontSize:20 }}>
+        <div style={{ fontFamily:'Pacifico,cursive', color:'#F0C040', fontSize:20 }}>
           loading your best...
         </div>
       </div>
@@ -42,7 +42,7 @@ function PersonalBestMap({ userId, onSwitchToWorld, discoveryScore }) {
       <div style={{ position:'fixed', inset:0, backgroundColor:'#0D0800',
                     display:'flex', flexDirection:'column',
                     alignItems:'center', justifyContent:'center', gap:16 }}>
-        <div style={{ fontFamily:'Pacifico,cursive', color:'#C8A951', fontSize:20,
+        <div style={{ fontFamily:'Pacifico,cursive', color:'#F0C040', fontSize:20,
                       textAlign:'center', padding:'0 32px' }}>
           YOUR BEST 100 IS EMPTY
         </div>
@@ -54,9 +54,9 @@ function PersonalBestMap({ userId, onSwitchToWorld, discoveryScore }) {
           onClick={onSwitchToWorld}
           onTouchEnd={(e) => { e.preventDefault(); onSwitchToWorld(); }}
           style={{ fontFamily:'Bebas Neue,sans-serif', fontSize:13,
-                   letterSpacing:3, color:'#C8A951',
+                   letterSpacing:3, color:'#F0C040',
                    backgroundColor:'transparent',
-                   border:'1px solid #C8A951',
+                   border:'1px solid #F0C040',
                    borderRadius:0, padding:'10px 28px',
                    marginTop:8, cursor:'pointer', minHeight:44 }}>
           EXPLORE WORLD BEST
@@ -81,7 +81,7 @@ function PersonalBestMap({ userId, onSwitchToWorld, discoveryScore }) {
         {/* MY BEST watermark */}
         <div style={{ position:'absolute', top:16, right:16,
                       fontFamily:'Bebas Neue,sans-serif', fontSize:8,
-                      letterSpacing:3, color:'#C8A951', opacity:0.6, zIndex:10 }}>
+                      letterSpacing:3, color:'#F0C040', opacity:0.6, zIndex:10 }}>
           MY BEST
         </div>
 
@@ -92,7 +92,7 @@ function PersonalBestMap({ userId, onSwitchToWorld, discoveryScore }) {
             fontFamily:'Bebas Neue,sans-serif',
             fontSize: currentIdx === 0 ? 120 : currentIdx < 3 ? 96 : 72,
             color:'#F5E6C8',
-            textShadow:'3px 3px 0 #C8A951, 6px 6px 0 #B8860B, 9px 9px 0 #8B6914',
+            textShadow:'3px 3px 0 #F0C040, 6px 6px 0 #B8860B, 9px 9px 0 #8B4513',
             lineHeight:1
           }}>
             #{currentIdx + 1}
@@ -107,7 +107,7 @@ function PersonalBestMap({ userId, onSwitchToWorld, discoveryScore }) {
             {current?.title || ''}
           </div>
           <div style={{ fontFamily:'Pacifico,cursive', fontSize:13,
-                        color:'#C8A951', fontStyle:'italic',
+                        color:'#F0C040', fontStyle:'italic',
                         overflow:'hidden', whiteSpace:'nowrap',
                         animation:'marqueeScroll 12s linear infinite' }}>
             {current?.ai_description || 'A moment worth keeping.'}
@@ -130,7 +130,7 @@ function PersonalBestMap({ userId, onSwitchToWorld, discoveryScore }) {
                  style={{ width: i === currentIdx ? 8 : 4,
                           height: i === currentIdx ? 8 : 4,
                           borderRadius:'50%',
-                          backgroundColor: i === currentIdx ? '#C8A951' : '#333',
+                          backgroundColor: i === currentIdx ? '#F0C040' : '#333',
                           cursor:'pointer', transition:'all 0.2s' }}/>
           ))}
         </div>
@@ -168,7 +168,7 @@ function PersonalBestMap({ userId, onSwitchToWorld, discoveryScore }) {
                             transform:'translate(-50%,-50%)',
                             fontFamily:'Bebas Neue,sans-serif',
                             fontSize:28, color:'#F5E6C8',
-                            textShadow:'2px 2px 0 #C8A951' }}>
+                            textShadow:'2px 2px 0 #F0C040' }}>
                 #{items.indexOf(item) + 1}
               </div>
               {item.color && (

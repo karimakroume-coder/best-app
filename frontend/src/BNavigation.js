@@ -1,11 +1,11 @@
 import React from 'react';
 
 const MAPS = [
-  { id: 'world-best', label: 'WORLD BEST', color: '#C8A951', size: 52, active: true },
+  { id: 'world-best', label: 'WORLD BEST', color: '#F0C040', size: 52, active: true },
   { id: 'best-map', label: 'BEST MAP', color: '#A8A9AD', size: 44 },
   { id: 'my-best', label: 'MY BEST', color: '#F5E6C8', size: 40 },
   { id: 'crew-best', label: 'CREW BEST', color: '#CD7F32', size: 36 },
-  { id: 'crown', label: 'CROWN', color: '#C8A951', size: 44, hasCrown: true },
+  { id: 'crown', label: 'CROWN', color: '#F0C040', size: 44, hasCrown: true },
 ];
 
 function BNavigation({ currentMap, setCurrentMap, uiOpen }) {

@@ -48,7 +48,7 @@ function WhisperCard({ coordKey }) {
                   animation: silent ? 'none' : 'cardBreathe 4s ease-in-out infinite' }}>
       {silent ? (
         <div style={{ width:'8px', height:'8px', borderRadius:'50%',
-                      backgroundColor:'#C9A84C', boxShadow:'0 0 12px #C9A84C' }} />
+                      backgroundColor:'#F0C040', boxShadow:'0 0 12px #F0C040' }} />
       ) : showWhisper ? (
         <div style={{ color:'#3A3A3A', fontSize:'10px', letterSpacing:'1px',
                       textAlign:'center', padding:'0 8px',

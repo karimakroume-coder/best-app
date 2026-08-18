@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 
 const API_BASE = 'https://web-production-a267.up.railway.app';
-const GOLD = '#C8A951';
+const GOLD = '#F0C040';
 const BRONZE = '#CD7F32';
 const CREAM = '#F5E6C8';
 const BG = '#0A0A0A';

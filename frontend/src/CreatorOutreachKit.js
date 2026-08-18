@@ -4,7 +4,7 @@ import html2canvas from 'html2canvas';
 
 const API_BASE = 'https://web-production-a267.up.railway.app';
 
-const GOLD_DIM = '#C8A951';
+const GOLD_DIM = '#F0C040';
 const CREAM = '#F5F0E6';
 const BG = '#0D0800';
 const CARD_BG = '#120C02';
@@ -64,7 +64,7 @@ function PitchCard() {
       </div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '28px' }}>
         {REACH_STATS.map(s => (
-          <div key={s.label} style={{ border: '1px solid #3A2E14', backgroundColor: 'rgba(200,169,81,0.04)',
+          <div key={s.label} style={{ border: '1px solid #3A2E14', backgroundColor: 'rgba(240,192,64,0.04)',
                         padding: '16px', textAlign: 'center' }}>
             <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: GOLD_DIM, fontSize: '30px' }}>{s.value}</div>
             <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: CREAM,
@@ -99,7 +99,7 @@ function PitchCard() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '12px' }}>
           {BENEFITS.map(b => (
             <div key={b.title} style={{ border: '1px solid #3A2E14', padding: '14px',
-                           backgroundColor: 'rgba(200,169,81,0.04)' }}>
+                           backgroundColor: 'rgba(240,192,64,0.04)' }}>
               <div style={{ fontFamily: 'Bebas Neue, sans-serif', color: GOLD_DIM,
                             fontSize: '13px', letterSpacing: '3px' }}>{b.title}</div>
               <div style={{ fontFamily: 'Pacifico, cursive', color: CREAM,
@@ -230,7 +230,7 @@ function CreatorOutreachKit() {
             value={creatorName} onChange={e => setCreatorName(e.target.value)} style={inputStyle} />
           {referralLink && (
             <div style={{ textAlign: 'left', padding: '14px', border: '1px solid #3A2E14',
-                          backgroundColor: 'rgba(200,169,81,0.05)' }}>
+                          backgroundColor: 'rgba(240,192,64,0.05)' }}>
               <div style={{ fontSize: '11px', color: '#8a7a4a', letterSpacing: '2px', marginBottom: '6px' }}>REFERRAL LINK</div>
               <div style={{ fontSize: '12px', color: CREAM, wordBreak: 'break-all' }}>{referralLink}</div>
             </div>

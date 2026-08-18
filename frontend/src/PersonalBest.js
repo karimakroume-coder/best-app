@@ -105,15 +105,15 @@ function PersonalBest({ userId }) {
                     backdropFilter: 'blur(8px)', borderBottom: '1px solid #1A1206' }}>
         <button onClick={() => navigate('/')}
           style={{ backgroundColor: 'transparent', border: '1px solid #3a2f14',
-                   color: '#C8A951', padding: '6px 14px', cursor: 'pointer',
+                   color: '#F0C040', padding: '6px 14px', cursor: 'pointer',
                    fontFamily: 'Bebas Neue, sans-serif', fontSize: '13px',
                    letterSpacing: '3px' }}>
           ‹ BACK
         </button>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-          <span style={{ fontFamily: 'Pacifico, cursive', color: '#C8A951',
+          <span style={{ fontFamily: 'Pacifico, cursive', color: '#F0C040',
                          fontSize: '22px', lineHeight: 1 }}>BEST</span>
-          <span style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#C8A951',
+          <span style={{ fontFamily: 'Bebas Neue, sans-serif', color: '#F0C040',
                          fontSize: '10px', letterSpacing: '6px' }}>PERSONAL BEST 100</span>
         </div>
       </div>
@@ -135,7 +135,7 @@ function PersonalBest({ userId }) {
       {!loading && !error && items.length === 0 && (
         <div style={{ textAlign: 'center', padding: '80px 24px' }}>
           <div style={{ fontFamily: 'Pacifico, cursive', fontSize: '26px',
-                        color: '#C8A951' }}>Nothing yet.</div>
+                        color: '#F0C040' }}>Nothing yet.</div>
           <div style={{ fontFamily: 'Bebas Neue, sans-serif', fontSize: '14px',
                         letterSpacing: '4px', color: '#8B7A52', marginTop: '16px' }}>
             SAVE VIDEOS FROM THE MAP — THEY WAIT HERE FOREVER.
@@ -171,7 +171,7 @@ function PersonalBest({ userId }) {
                           transform: 'translateY(-50%)',
                           fontFamily: 'Bebas Neue, sans-serif', color: '#F5E6C8',
                           fontSize: '64px', letterSpacing: '2px',
-                          textShadow: '2px 2px 0 #C8A951, 4px 4px 0 #B8860B, 6px 6px 0 rgba(0,0,0,0.5)' }}>
+                          textShadow: '2px 2px 0 #F0C040, 4px 4px 0 #B8860B, 6px 6px 0 rgba(0,0,0,0.5)' }}>
               {rank ? `#${rank}` : '—'}
             </div>
 
@@ -185,7 +185,7 @@ function PersonalBest({ userId }) {
                 {title}
               </div>
               <div style={{ fontFamily: 'Arial, sans-serif', fontSize: '10px',
-                            color: '#C8A951', letterSpacing: '4px',
+                            color: '#F0C040', letterSpacing: '4px',
                             textTransform: 'uppercase', marginTop: '6px' }}>
                 {channel}
               </div>
@@ -225,9 +225,9 @@ function PersonalBest({ userId }) {
             }}
             style={{
               fontFamily: 'Bebas Neue, sans-serif', fontSize: '14px',
-              letterSpacing: '4px', color: '#C8A951',
+              letterSpacing: '4px', color: '#F0C040',
               backgroundColor: 'transparent',
-              border: '1px solid #C8A951',
+              border: '1px solid #F0C040',
               borderRadius: 0, padding: '10px 28px',
               cursor: 'pointer',
               minWidth: '44px', minHeight: '44px',

@@ -9,7 +9,7 @@ import React, { useEffect, useRef, useState } from 'react';
 // other close path) reverses the same animation — openings close, then the
 // rings converge back into the corner.
 // Openings (left→right): MARK (color wheel) · MY100 (+) · WATCH (▶) · FLEX (camera)
-const RING_GOLD = '#C8A951';
+const RING_GOLD = '#F0C040';
 const WAVE_MS = 800;
 const RING_INSETS = [0, 6, 12];
 const RING_OPACITIES = [1, 0.55, 0.3];
@@ -81,7 +81,7 @@ function Opening({ icon, locked, onClick, onTouchEnd, revealed }) {
       </div>
       {locked && (
         <span style={{ position:'absolute', top:'-4px', right:'-4px', fontSize:'11px',
-                       color:'#C9A84C', textShadow:'0 0 4px rgba(0,0,0,0.9)' }}>🔒</span>
+                       color:'#F0C040', textShadow:'0 0 4px rgba(0,0,0,0.9)' }}>🔒</span>
       )}
     </div>
   );

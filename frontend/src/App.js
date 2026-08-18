@@ -35,7 +35,7 @@ function Rankings() {
   const [huntActive, setHuntActive]           = useState(false);
   const [showOnboarding, setShowOnboarding]   = useState(false);
   const [currentMap, setCurrentMap]           = useState('world-best');
-  const [uiOpen, setUiOpen]                  = useState(false);
+  const [mandalaState, setMandalaState]       = useState('hidden');
 
   const checkColorOnboarding = () => {
     if (!localStorage.getItem('colorRanking')) {
@@ -119,7 +119,7 @@ function Rankings() {
 
       {/* SPATIAL MAP — the old fixed header has been folded into the
           Mandala Control Center (category strip, hunt/dark-mode toggles,
-          profile/logout) rendered inside SpatialMap when uiOpen is true */}
+          profile/logout) rendered inside SpatialMap when mandala is bloomed */}
       {loading ? (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center',
                       height: '100vh', color: '#555', letterSpacing: '4px', fontSize: '12px' }}>
@@ -136,7 +136,7 @@ function Rankings() {
             discoveryScore={discoveryScore ?? 0}
             currentMap={currentMap}
             setCurrentMap={setCurrentMap}
-            onUIStateChange={setUiOpen}
+            onUIStateChange={setMandalaState}
             categories={CATEGORIES}
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
@@ -165,7 +165,7 @@ function Rankings() {
       <BNavigation
         currentMap={currentMap}
         setCurrentMap={setCurrentMap}
-        uiOpen={uiOpen}
+        uiOpen={mandalaState === 'bloom'}
       />
       {showOnboarding && <ColorOnboarding onComplete={() => setShowOnboarding(false)} />}
     </div>

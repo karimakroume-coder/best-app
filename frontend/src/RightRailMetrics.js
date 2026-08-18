@@ -16,8 +16,8 @@ import React from 'react';
 //   <RightRailMetrics discoveryScore={discoveryScore}
 //       currentRank={currentVideo?.rank} currentVideo={currentVideo} />
 
-const GOLD = '#C9A84C';
-const GOLD_DARK = '#C8A951';
+const GOLD = '#F0C040';
+const GOLD_DARK = '#F0C040';
 const CREAM = '#F5E6C8';
 const DARK = '#0D0800';
 const SERIF = "'Cinzel', Georgia, 'Times New Roman', serif";
@@ -50,7 +50,7 @@ function MiniMedallion() {
     <div style={{
       width: 30, height: 30, borderRadius: '50%', position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'radial-gradient(circle at 32% 28%, #F5E6C8 0%, #C9A84C 45%, #8B6914 100%)',
+      background: 'radial-gradient(circle at 32% 28%, #F5E6C8 0%, #F0C040 45%, #8B4513 100%)',
       boxShadow: '0 0 10px rgba(201,168,76,0.4), inset 0 0 4px rgba(0,0,0,0.5)',
     }}>
       <div style={{
@@ -103,7 +103,7 @@ function RightRailMetrics({ discoveryScore = 0, currentRank = null, currentVideo
       width: 52, display: 'flex', flexDirection: 'column', alignItems: 'center',
       backgroundColor: 'rgba(5,5,5,0.72)', backdropFilter: 'blur(4px)',
       border: '1px solid #2A2110', borderRight: 'none',
-      borderLeft: '1px solid #C8A951',
+      borderLeft: '1px solid #F0C040',
       borderRadius: '10px 0 0 10px',
       padding: '7px 4px 7px',
       boxShadow: '-4px 0 18px rgba(0,0,0,0.4)',
@@ -117,7 +117,7 @@ function RightRailMetrics({ discoveryScore = 0, currentRank = null, currentVideo
       <div style={{ width: 3, height: 44, backgroundColor: '#111',
                     borderRadius: 2, overflow: 'hidden', margin: '2px 0' }}>
         <div style={{ width: '100%', height: `${pct}%`,
-                      background: 'linear-gradient(to top, #8B6914, #C9A84C)',
+                      background: 'linear-gradient(to top, #8B4513, #F0C040)',
                       transition: 'height 0.5s ease' }} />
       </div>
 

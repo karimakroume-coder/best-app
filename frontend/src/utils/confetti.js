@@ -3,7 +3,7 @@
 // spawns a handful of small gold particles at a screen coordinate that
 // arc outward, tumble, fade, and remove themselves from the DOM.
 
-const GOLD_SHADES = ['#C9A84C', '#C8A951', '#F5E6C8', '#E9CD7A'];
+const GOLD_SHADES = ['#F0C040', '#F0C040', '#F5E6C8', '#E9CD7A'];
 const PARTICLE_COUNT = 18;
 const BASE_DURATION_MS = 1200;
 const CLEANUP_SAFETY_MARGIN_MS = 300; // in case an animation's onfinish never fires
