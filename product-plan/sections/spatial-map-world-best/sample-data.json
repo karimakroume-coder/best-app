@@ -1,0 +1,125 @@
+{
+  "_meta": {
+    "models": {
+      "Video": "A ranked video on the World Best map with its score, creator, and engagement metrics.",
+      "Metric": "A single engagement metric (fireflag, FLEX, or share) displayed on the right edge of the card."
+    },
+    "relationships": [
+      "A Video has many Metrics displayed as a vertical stack on the right edge.",
+      "A Video belongs to a Rank position on the World Best map."
+    ]
+  },
+  "currentVideo": {
+    "id": "vid_001",
+    "rank": 1,
+    "title": "The Last Dance — Episode 10",
+    "creator": "ESPN",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1920&h=1080&fit=crop",
+    "videoUrl": "https://www.youtube.com/watch?v=example1",
+    "bestScore": 9847,
+    "isRisingFast": true,
+    "fireflagCount": 2847,
+    "flexCount": 1203,
+    "shareCount": 456,
+    "aiDescription": "A championship moment that transcends sport — raw, eternal, golden.",
+    "category": "sports",
+    "publishedAt": "2026-08-17T14:30:00Z",
+    "velocity": 342,
+    "retention": 0.94,
+    "geoSpread": 47,
+    "eliteBonus": true
+  },
+  "nearbyVideos": [
+    {
+      "id": "vid_002",
+      "rank": 2,
+      "title": "Bohemian Rhapsody — Remastered 4K",
+      "creator": "Queen Official",
+      "bestScore": 9234,
+      "isRisingFast": false,
+      "fireflagCount": 2103,
+      "flexCount": 876,
+      "shareCount": 312,
+      "aiDescription": "Opera meets rock in a defiance of every rule ever written.",
+      "category": "music"
+    },
+    {
+      "id": "vid_003",
+      "rank": 3,
+      "title": "How DNA Actually Works — Visualized",
+      "creator": "Kurzgesagt",
+      "bestScore": 8912,
+      "isRisingFast": true,
+      "fireflagCount": 1876,
+      "flexCount": 654,
+      "shareCount": 289,
+      "aiDescription": "The machinery of life rendered with impossible elegance.",
+      "category": "science"
+    },
+    {
+      "id": "vid_004",
+      "rank": 4,
+      "title": "Paris 2024 — Women's 100m Final",
+      "creator": "Olympics",
+      "bestScore": 8567,
+      "isRisingFast": false,
+      "fireflagCount": 1543,
+      "flexCount": 521,
+      "shareCount": 198,
+      "aiDescription": "Nine seconds that contain a lifetime of sacrifice.",
+      "category": "sports"
+    },
+    {
+      "id": "vid_005",
+      "rank": 5,
+      "title": "The Art of Code — Dylan Beattie",
+      "creator": "NDC Conferences",
+      "bestScore": 8234,
+      "isRisingFast": true,
+      "fireflagCount": 1287,
+      "flexCount": 445,
+      "shareCount": 167,
+      "aiDescription": "When engineering becomes poetry and the audience becomes the compiler.",
+      "category": "science"
+    },
+    {
+      "id": "vid_006",
+      "rank": 6,
+      "title": "Interstellar — Docking Scene (IMAX)",
+      "creator": "Warner Bros",
+      "bestScore": 7891,
+      "isRisingFast": false,
+      "fireflagCount": 1102,
+      "flexCount": 389,
+      "shareCount": 134,
+      "aiDescription": "Hans Zimmer scored the exact frequency of human terror and wonder.",
+      "category": "art"
+    },
+    {
+      "id": "vid_007",
+      "rank": 7,
+      "title": "Keyboard Cat — The Original",
+      "creator": "Charlie Schmidt",
+      "bestScore": 7456,
+      "isRisingFast": false,
+      "fireflagCount": 934,
+      "flexCount": 278,
+      "shareCount": 89,
+      "aiDescription": "Proof that joy needs no explanation and cats own the internet.",
+      "category": "comedy"
+    },
+    {
+      "id": "vid_008",
+      "rank": 8,
+      "title": "Rust in 100 Seconds",
+      "creator": "Fireship",
+      "bestScore": 7123,
+      "isRisingFast": true,
+      "fireflagCount": 867,
+      "flexCount": 234,
+      "shareCount": 78,
+      "aiDescription": "A language that makes memory safety feel like a competitive sport.",
+      "category": "science"
+    }
+  ]
+}

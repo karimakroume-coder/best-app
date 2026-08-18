@@ -1,0 +1,42 @@
+/* Design Tokens for BEST */
+
+:root {
+  /* === Colors === */
+  --color-primary: #F0C040;        /* Champagne Gold — rank numbers, icons, borders, active states */
+  --color-secondary: #5C1A1A;      /* Bordeaux — card backgrounds, rich surfaces */
+  --color-neutral: #0D0800;        /* Warm near-black — primary background */
+  --color-text: #F5E6C8;           /* Parchment — all text, cream surfaces */
+
+  /* Emboss System — layered gold letterpress */
+  --color-emboss-bright: #D4A017;  /* Bright face — top layer */
+  --color-emboss-mid: #B8860B;     /* Mid shadow — middle layer */
+  --color-emboss-deep: #8B4513;    /* Deep shadow — furthest back */
+
+  /* Palette shortcuts */
+  --color-gold: #F0C040;
+  --color-bordeaux: #5C1A1A;
+  --color-parchment: #F5E6C8;
+  --color-background: #0D0800;
+
+  /* === Typography === */
+  --font-display: 'Times New Roman', Georgia, serif;  /* Logo wordmark, championship headlines */
+  --font-ui: 'Bebas Neue', Impact, sans-serif;         /* Buttons, labels, rank numbers */
+  --font-script: 'Pacifico', cursive;                   /* AI poetic descriptions */
+
+  /* === Spacing === */
+  --mandala-size: 60px;
+  --mandala-bottom: 24px;
+  --mandala-right: 24px;
+  --frame-radius: 16px;
+  --frame-inset: 8px;
+
+  /* === Animation === */
+  --bloom-duration: 0.5s;
+  --bloom-easing: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --retreat-delay: 0.6s;
+
+  /* === Shadows === */
+  --shadow-gold-glow: 0 0 20px rgba(240, 192, 64, 0.3);
+  --shadow-deep: 0 4px 12px rgba(0, 0, 0, 0.5);
+  --shadow-emboss: inset 0 1px 2px rgba(255, 255, 255, 0.15);
+}
