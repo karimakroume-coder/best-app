@@ -25,10 +25,12 @@
   --color-parchment: var(--best-parchment);
   --color-background: var(--best-background);
 
-  /* Typography */
-  --font-display: 'Times New Roman', Georgia, serif;
-  --font-ui: 'Bebas Neue', Impact, sans-serif;
-  --font-script: 'Pacifico', cursive;
+  /* Typography — Poppins, two weights (design pivot 2026-08-22).
+     --font-ui carries the deprecated Bebas Neue name for back-compat with
+     any inline style still referencing it; both now resolve to Poppins. */
+  --font-display: 'Poppins', sans-serif;
+  --font-ui: 'Poppins', sans-serif;
+  --font-script: 'Poppins', sans-serif;
 
   /* Mandala */
   --mandala-size: 60px;
@@ -75,33 +77,30 @@ html, body, #root {
   100% { transform: scale(1); }
 }
 
-/* ── GOLD MEDALLION — embossed button style for Mandala action openings ── */
+/* ── GOLD MEDALLION — flat Brand Device button for Mandala action openings.
+   Bordeaux fill, thin gold outline, flat gold icon — no gradient/emboss
+   (design pivot 2026-08-22, see CLAUDE.md). ─────────────────────────────── */
 .gold-medallion {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: radial-gradient(circle at 35% 35%, var(--color-parchment) 0%, var(--color-primary) 40%, var(--color-emboss-deep) 100%);
-  border: 2px solid var(--color-primary);
-  box-shadow:
-    var(--shadow-deep),
-    inset var(--shadow-emboss),
-    inset 0 -1px 2px rgba(0,0,0,0.3);
+  background: var(--best-bordeaux);
+  border: 1.5px solid var(--best-gold);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   position: relative;
   flex-shrink: 0;
-  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+  transition: transform 0.15s ease-out;
 }
 .gold-medallion:active {
   transform: scale(0.92);
-  box-shadow:
-    0 1px 4px rgba(0,0,0,0.6),
-    inset 0 1px 3px rgba(0,0,0,0.4);
 }
 
-/* ── EMBOSSED RANK 1 — gold relief text for #1 position ────────────────── */
+/* .embossed-rank-1 / RETRO_SILVER_SHADOW in SpatialMap.js are dead code —
+   superseded by the RankNumber component — left as-is, unused. */
 .embossed-rank-1 {
   font-family: var(--font-display);
   color: var(--color-parchment);
@@ -112,21 +111,16 @@ html, body, #root {
     0 0 12px rgba(240,192,64,0.3);
 }
 
-/* ── CINEMATIC VIGNETTE — dark-edge overlay for single-card view ───────── */
+/* .cinematic-vignette / .film-grain were single-card-view-only overlays,
+   removed from the flat design (design pivot 2026-08-22) — definitions kept
+   here only in case anything still imports them. */
 .cinematic-vignette {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 5;
-  background: radial-gradient(ellipse at center, transparent 50%, rgba(0,0,0,0.6) 100%);
 }
 
-/* ── FILM GRAIN — subtle noise texture overlay ──────────────────────────── */
 .film-grain {
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: 6;
-  opacity: 0.05;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  display: none;
 }

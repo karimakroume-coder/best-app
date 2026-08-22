@@ -17,11 +17,10 @@ import React from 'react';
 //       currentRank={currentVideo?.rank} currentVideo={currentVideo} />
 
 const GOLD = '#F0C040';
-const GOLD_DARK = '#F0C040';
-const CREAM = '#F5E6C8';
 const DARK = '#0D0800';
-const SERIF = "'Cinzel', Georgia, 'Times New Roman', serif";
-const SANS = "'Bebas Neue', sans-serif";
+const BORDEAUX = '#5C1A1A';
+const DISPLAY = "'Poppins', sans-serif";
+const META = "'Poppins', sans-serif";
 
 const MILESTONES = [
   [100, 'EXPLORER'],
@@ -48,16 +47,11 @@ function currentTier(score) {
 function MiniMedallion() {
   return (
     <div style={{
-      width: 30, height: 30, borderRadius: '50%', position: 'relative',
+      width: 30, height: 30, borderRadius: 8, position: 'relative',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'radial-gradient(circle at 32% 28%, #F5E6C8 0%, #F0C040 45%, #8B4513 100%)',
-      boxShadow: '0 0 10px rgba(201,168,76,0.4), inset 0 0 4px rgba(0,0,0,0.5)',
+      backgroundColor: BORDEAUX, border: '1.5px solid #F0C040',
     }}>
-      <div style={{
-        position: 'absolute', inset: 5, borderRadius: '50%',
-        border: '1px solid rgba(13,8,0,0.55)',
-      }} />
-      <span style={{ fontFamily: SERIF, color: DARK, fontSize: 13, lineHeight: 1, fontWeight: 700 }}>
+      <span style={{ fontFamily: DISPLAY, color: GOLD, fontSize: 13, lineHeight: 1, fontWeight: 900 }}>
         B
       </span>
     </div>
@@ -68,17 +62,16 @@ function RailItem({ label, value, sub, accent = GOLD }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
                   width: '100%', padding: '4px 0' }}>
-      <span style={{ fontFamily: SERIF, color: '#8B7355', fontSize: '7px',
-                     letterSpacing: '2px', lineHeight: 1, fontWeight: 700 }}>
+      <span style={{ fontFamily: DISPLAY, fontWeight: 800, color: '#8B7355', fontSize: '7px',
+                     letterSpacing: '2px', lineHeight: 1 }}>
         {label}
       </span>
-      <span style={{ fontFamily: SANS, color: accent, fontSize: '22px', lineHeight: 1,
-                     letterSpacing: '1px', marginTop: '3px', fontVariantNumeric: 'tabular-nums',
-                     textShadow: `0 0 8px ${accent === GOLD ? 'rgba(201,168,76,0.5)' : 'rgba(0,0,0,0.6)'}` }}>
+      <span style={{ fontFamily: DISPLAY, fontWeight: 900, color: accent, fontSize: '22px', lineHeight: 1,
+                     letterSpacing: '1px', marginTop: '3px', fontVariantNumeric: 'tabular-nums' }}>
         {value}
       </span>
       {sub && (
-        <span style={{ fontFamily: SERIF, color: '#666', fontSize: '6px',
+        <span style={{ fontFamily: META, fontWeight: 200, color: '#666', fontSize: '6px',
                        letterSpacing: '1px', lineHeight: 1, marginTop: '3px', textAlign: 'center' }}>
           {sub}
         </span>

@@ -47,7 +47,7 @@ const RETRO_SILVER_SHADOW =
 
 function getRetroRankStyle(rank) {
   const base = {
-    fontFamily: 'Bebas Neue, sans-serif',
+    fontFamily: "'Poppins', sans-serif", fontWeight: 800,
     color: '#F5E6C8',
     letterSpacing: '4px',
   };
@@ -152,17 +152,17 @@ function letterPositionForIndex(i) {
   };
 }
 
-// ── VINTAGE BUTTON — shared base for RANDOM / ZOOM ─────────────────────────
-// Text-label styling (no fill, square corners) with a guaranteed 44x44
-// touch target regardless of how small the visible padding reads.
+// ── FLAT BUTTON — shared base for RANDOM / ZOOM ────────────────────────────
+// Flat Brand Device outline styling with a guaranteed 44x44 touch target
+// regardless of how small the visible padding reads.
 const vintageButtonBase = {
-  fontFamily: 'Bebas Neue, sans-serif',
+  fontFamily: "'Poppins', sans-serif", fontWeight: 800,
   fontSize: '11px',
   letterSpacing: '4px',
   color: '#F0C040',
   backgroundColor: 'transparent',
-  border: '1px solid #F0C040',
-  borderRadius: 0,
+  border: '1.5px solid #F0C040',
+  borderRadius: 10,
   padding: '8px 16px',
   minWidth: '44px',
   minHeight: '44px',
@@ -1188,7 +1188,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       <div style={{ width:'100vw', height:'100vh', backgroundColor:'#000000',
                     display:'flex', alignItems:'center', justifyContent:'center',
                     position:'fixed', inset:0, zIndex:200 }}>
-        <div style={{ fontFamily:'Pacifico, cursive', color:'#F0C040',
+        <div style={{ fontFamily:"'Poppins', sans-serif", fontWeight:200, color:'#F0C040',
                       fontSize:'clamp(28px,7vw,56px)',
                       textShadow:'0 0 40px #F0C040',
                       animation:'logoFlash 0.3s ease' }}>
@@ -1248,7 +1248,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         {renderFormation(1, (v) => playDropAnimation(v.rank), 'TAP ANY VIDEO TO EXPLORE')}
         <div style={{ position:'fixed', bottom:'40px', left:'50%', transform:'translateX(-50%)',
                       zIndex:10, pointerEvents:'none', animation:'fadeIn 0.6s ease' }}>
-          <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
+          <div style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F0C040',
                         fontSize:'9px', letterSpacing:'6px', textAlign:'center',
                         textShadow:'0 0 12px rgba(201,168,76,0.5)' }}>
             GLOBAL RANKING · {totalRanks} VIDEOS
@@ -1332,7 +1332,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                   )}
                   {risingVideos.some(r => r.video_id === v?.video_id) && (
                     <div style={{ position:'absolute', top:'2px', right:'2px',
-                                  fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
+                                  fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F0C040',
                                   fontSize:'12px', lineHeight:1, textShadow:'0 0 4px rgba(0,0,0,0.8)' }}>
                       ↗
                     </div>
@@ -1382,8 +1382,6 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
            else if (dotState === 'three') closeUI();
          }}>
 
-      {/* VIGNETTE */}
-      <div className="cinematic-vignette" />
 
       {/* MAP INDICATOR PILL — shows current map when UI is open */}
       {mandalaState === 'bloom' && (
@@ -1392,7 +1390,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                       border:'1px solid #F0C040', borderRadius:'16px',
                       padding:'6px 20px', pointerEvents:'none',
                       animation:'fadeInSimple 0.3s ease' }}>
-          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
+          <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F0C040',
                          fontSize:'12px', letterSpacing:'4px' }}>
             {MAP_LABELS[currentMap] || currentMap.toUpperCase()}
           </span>
@@ -1423,7 +1421,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                          color: selectedCategory === cat.value ? '#0D0800' : '#F0C040',
                          border: selectedCategory === cat.value ? 'none' : '1px solid #333',
                          padding:'5px 14px', cursor:'pointer', flexShrink:0,
-                         fontFamily:'Bebas Neue, sans-serif', fontSize:'11px',
+                         fontFamily:"'Poppins', sans-serif", fontWeight:800, fontSize:'11px',
                          letterSpacing:'2px', borderRadius:'2px' }}>
                 {cat.label.toUpperCase()}
               </button>
@@ -1515,15 +1513,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                       borderRadius:'8px 0 0 8px', padding:'10px 6px',
                       cursor:'pointer', animation:'fadeInLeft 0.3s ease-out',
                       writingMode:'vertical-rl', textOrientation:'mixed' }}>
-          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
+          <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F0C040',
                          fontSize:'10px', letterSpacing:'2px' }}>
             {flexList.length} FLEX WALL
           </span>
         </div>
       )}
 
-      {/* GRAIN TEXTURE */}
-      <div className="film-grain" />
 
       {/* VIDEO CARD */}
       <animated.div style={{ ...springs, width:'100%', height:'100%',
@@ -1559,36 +1555,25 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           />
         )}
 
-        {/* BEST LOGO */}
+        {/* BEST LOGO — flat rounded-rect Brand Device wordmark */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center',
-                      fontFamily:'Pacifico, cursive',
-                      fontSize: focusMode ? '24px' : '48px', color:'#F5E6C8',
-                      textShadow:'2px 2px 0 #F0C040, 4px 4px 0 #B8860B, 6px 6px 0 #8B4513, 8px 8px 0 rgba(0,0,0,0.5)',
-                      marginBottom:'8px',
-                      transition:'all 0.8s ease-out',
-                      transform: focusMode ?
-                        'translateY(-60px) scale(0.4)' :
-                        'translateY(0) scale(1)',
-                      opacity: focusMode ? 0.2 : 1 }}>
-          BEST
+                      display: focusMode ? 'none' : 'flex', justifyContent:'center',
+                      marginBottom:'8px', transition:'all 0.8s ease-out' }}>
+          <span style={{
+            display:'inline-block', backgroundColor:'#5C1A1A', border:'1.5px solid #F0C040',
+            borderRadius:'12px', padding:'4px 16px',
+            fontFamily:"'Poppins', sans-serif", fontWeight:900, letterSpacing:'0.1em',
+            fontSize:'20px', color:'#F0C040',
+          }}>
+            BEST
+          </span>
         </div>
 
-        {/* RANK NUMBER — Design OS 3-layer embossed letterpress */}
+        {/* RANK NUMBER — flat Brand Device badge */}
         <div style={{ position:'relative', zIndex:2, textAlign:'center' }}>
           <RankNumber rank={currentVideo.rank} compact={focusMode} />
 
-          {/* CURVED SWOOSH */}
-          <svg width="200" height="40" viewBox="0 0 200 40"
-               style={{ display:'block', margin:'0 auto',
-                        transition:'opacity 0.5s ease',
-                        opacity: focusMode ? 0 : 1 }}>
-            <path d="M 20 10 Q 100 40 180 10"
-                  stroke="#F0C040" strokeWidth="3" fill="none" strokeLinecap="round" />
-            <path d="M 175 5 Q 185 10 180 20"
-                  stroke="#F0C040" strokeWidth="3" fill="none" strokeLinecap="round" />
-          </svg>
-
-          <div style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F5E6C8',
+          <div style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F5E6C8',
                         textAlign:'center',
                         marginTop:'4px', maxWidth:'320px', padding:'0 16px',
                         transition:'all 0.8s ease-out',
@@ -1602,7 +1587,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           {flexList.length > 0 && (
             <div onClick={() => setFlexWallOpen(true)}
                  onTouchEnd={(e) => { e.preventDefault(); setFlexWallOpen(true); }}
-                 style={{ color:'#F0C040', fontFamily:'Bebas Neue,sans-serif',
+                 style={{ color:'#F0C040', fontFamily:"'Poppins', sans-serif", fontWeight:800,
                           fontSize:11, letterSpacing:3, cursor:'pointer',
                           textAlign:'center', marginTop:8 }}>
               {flexList.length} FLEXES — TAP TO SEE
@@ -1639,7 +1624,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               }}>
                 {/* LEFT — RISING FAST */}
                 <div style={{
-                  fontFamily: 'Bebas Neue, sans-serif',
+                  fontFamily: "'Poppins', sans-serif", fontWeight: 800,
                   color: isRising ? '#F0C040' : 'transparent',
                   fontSize: '10px', letterSpacing: '2px',
                   animation: isRising ? 'risingPulse 2s ease-in-out infinite' : 'none',
@@ -1650,7 +1635,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
                 {/* CENTER — title / category */}
                 <div style={{
-                  fontFamily: 'Bebas Neue, sans-serif',
+                  fontFamily: "'Poppins', sans-serif", fontWeight: 800,
                   color: '#F5E6C8',
                   fontSize: '11px', letterSpacing: '2px',
                   textAlign: 'center',
@@ -1665,7 +1650,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
 
                 {/* RIGHT — fireflag count */}
                 <div style={{
-                  fontFamily: 'Bebas Neue, sans-serif',
+                  fontFamily: "'Poppins', sans-serif", fontWeight: 800,
                   color: ffCount > 0 ? '#E74C3C' : 'transparent',
                   fontSize: '10px', letterSpacing: '1px',
                   minWidth: '50px',
@@ -1701,13 +1686,13 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           <div style={{ transition:'opacity 0.5s ease', opacity: focusMode ? 0 : 1 }}>
             <div style={{ display:'flex', alignItems:'center', justifyContent:'center',
                           gap:'10px', marginTop:'14px' }}>
-              <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'20px',
+              <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, fontSize:'20px',
                             color:'#F5E6C8', letterSpacing:'1px' }}>
                 {currentVideo.total_score}
               </span>
               <div style={{ width:'56px', height:'2px',
                             background:'linear-gradient(to right, transparent, #F0C040, #F0C040, transparent)' }} />
-              <span style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px',
+              <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, fontSize:'14px',
                             color:'#8B4513', letterSpacing:'1px' }}>
                 100
               </span>
@@ -1789,7 +1774,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         <div style={{ position:'absolute', bottom:'120px', right:'16px', zIndex:9,
                       display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'6px' }}>
           {fireflagRemaining !== null && (
-            <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040',
+            <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F0C040',
                            fontSize:'9px', letterSpacing:'2px', opacity:0.7 }}>
               {fireflagRemaining} FLAGS LEFT
             </span>
@@ -1893,7 +1878,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                 <div style={{ height:'3px', backgroundColor:'#1A1A1A', borderRadius:'2px', overflow:'hidden', marginBottom:'3px' }}>
                   <div style={{ height:'100%', width:`${pct}%`, backgroundColor:'#F0C040', transition:'width 0.5s ease' }} />
                 </div>
-                <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F0C040', fontSize:'7px', letterSpacing:'1px' }}>
+                <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F0C040', fontSize:'7px', letterSpacing:'1px' }}>
                   {label} {discoveryScore}/{threshold}
                 </span>
               </div>
@@ -2172,7 +2157,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                          backgroundColor: flexOverlay === ov ? '#F0C040' : 'transparent',
                          border: flexOverlay === ov ? 'none' : '1px solid #3a2f14',
                          color: ov === 'none' ? '#F0C040' : '#F5E6C8',
-                         fontSize:'9px', fontFamily:'Bebas Neue, sans-serif',
+                         fontSize:'9px', fontFamily:"'Poppins', sans-serif", fontWeight:800,
                          letterSpacing:'1px', cursor:'pointer', padding:0,
                          display:'flex', alignItems:'center', justifyContent:'center' }}>
                 {ov === 'none' ? 'NONE' : ov}
@@ -2183,7 +2168,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           {flexSnapped && flexSnapshotUrl ? (
             <button onClick={postFlex}
               onTouchEnd={(e) => { e.preventDefault(); postFlex(); }}
-              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'3px',
+              style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, fontSize:'14px', letterSpacing:'3px',
                        color:'#0D0800', backgroundColor:'#F0C040', border:'none', borderRadius:0,
                        padding:'10px 20px', minWidth:'44px', minHeight:'44px',
                        cursor:'pointer', opacity: flexStickerDrop ? 0.6 : 1 }}>
@@ -2192,7 +2177,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           ) : (
             <button onClick={snapFlexPhoto}
               onTouchEnd={(e) => { e.preventDefault(); snapFlexPhoto(); }}
-              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'3px',
+              style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, fontSize:'14px', letterSpacing:'3px',
                        color:'#F0C040', backgroundColor:'transparent', border:'1px solid #F0C040',
                        borderRadius:0, padding:'6px 16px', minWidth:'44px', minHeight:'44px',
                        cursor:'pointer' }}>
@@ -2221,27 +2206,27 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                       alignItems:'center', justifyContent:'center', gap:'10px',
                       animation:'regSheetUp 0.3s ease-out',
                       boxShadow:'0 -10px 40px rgba(0,0,0,0.7)' }}>
-          <span style={{ fontFamily:'Pacifico, cursive', color:'#F0C040',
+          <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:200, color:'#F0C040',
                          fontSize:'28px', lineHeight:1 }}>BEST</span>
-          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F5E6C8',
+          <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F5E6C8',
                          fontSize:'14px', letterSpacing:'3px' }}>
             LEAVE YOUR MARK ON THIS VIDEO
           </span>
-          <span style={{ fontFamily:'Bebas Neue, sans-serif', color:'#8B7355',
+          <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#8B7355',
                          fontSize:'12px', letterSpacing:'2px' }}>
             10 SECONDS TO JOIN
           </span>
           <div style={{ display:'flex', gap:'12px', marginTop:'4px' }}>
             <button onClick={() => { window.location.href = '/register'; }}
               onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/register'; }}
-              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'13px', letterSpacing:'3px',
+              style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, fontSize:'13px', letterSpacing:'3px',
                        color:'#0D0800', backgroundColor:'#F0C040', border:'none', borderRadius:0,
                        padding:'8px 28px', minWidth:'44px', minHeight:'44px', cursor:'pointer' }}>
               SIGN UP
             </button>
             <button onClick={() => { window.location.href = '/login'; }}
               onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/login'; }}
-              style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'13px', letterSpacing:'3px',
+              style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, fontSize:'13px', letterSpacing:'3px',
                        color:'#F0C040', backgroundColor:'transparent', border:'1px solid #F0C040',
                        borderRadius:0, padding:'8px 28px', minWidth:'44px', minHeight:'44px',
                        cursor:'pointer' }}>
@@ -2265,7 +2250,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                       backgroundColor:'rgba(0,0,0,0.92)',
                       zIndex:250, overflow:'hidden' }}>
           <div style={{ position:'absolute', top:16, left:0, right:0,
-                        textAlign:'center', fontFamily:'Bebas Neue,sans-serif',
+                        textAlign:'center', fontFamily:"'Poppins', sans-serif", fontWeight:800,
                         color:'#F0C040', fontSize:16, letterSpacing:4 }}>
             {flexList.length} FLEXES · TAP TO CLOSE
           </div>
@@ -2309,7 +2294,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
             <div style={{ width:'36px', height:'4px', backgroundColor:'#333',
                           borderRadius:'2px', margin:'0 auto 20px' }} />
             <span style={{ fontSize:'28px' }}>🔒</span>
-            <h3 style={{ fontFamily:'Bebas Neue, sans-serif', color:'#F5E6C8',
+            <h3 style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F5E6C8',
                          fontSize:'20px', letterSpacing:'3px', margin:'12px 0 6px' }}>
               JOIN BEST TO CONTINUE
             </h3>
@@ -2320,7 +2305,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               <button
                 onClick={() => { window.location.href = '/register'; }}
                 onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/register'; }}
-                style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
+                style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, fontSize:'14px', letterSpacing:'4px',
                          color:'#0D0800', backgroundColor:'#F0C040', border:'none', borderRadius:0,
                          padding:'14px', minHeight:'44px', cursor:'pointer' }}>
                 SIGN UP
@@ -2328,7 +2313,7 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
               <button
                 onClick={() => { window.location.href = '/login'; }}
                 onTouchEnd={(e) => { e.preventDefault(); window.location.href = '/login'; }}
-                style={{ fontFamily:'Bebas Neue, sans-serif', fontSize:'14px', letterSpacing:'4px',
+                style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, fontSize:'14px', letterSpacing:'4px',
                          color:'#F0C040', backgroundColor:'transparent', border:'1px solid #F0C040',
                          borderRadius:0, padding:'14px', minHeight:'44px', cursor:'pointer' }}>
                 LOG IN

@@ -1,13 +1,12 @@
 import React from 'react';
 
 /**
- * RankNumber — 3-layer embossed gold letterpress rank display.
- * Layers: deep shadow → mid shadow → bright face with gradient.
- * `compact` prop shrinks and repositions for focusMode.
+ * RankNumber — flat Brand Device rank badge (design pivot 2026-08-22).
+ * Rounded-rect, bordeaux fill, thin gold outline, "#N" in flat Poppins
+ * Black gold with a "CONSENSUS" label divided by a thin gold rule.
+ * `compact` prop shrinks it for focusMode.
  */
 export default function RankNumber({ rank, compact = false }) {
-  const size = compact ? 'clamp(40px, 6vw, 60px)' : 'clamp(80px, 12vw, 140px)';
-
   return (
     <div
       style={{
@@ -16,62 +15,41 @@ export default function RankNumber({ rank, compact = false }) {
         left: compact ? '20px' : '40px',
         zIndex: 5,
         userSelect: 'none',
-        transition: 'all 0.8s ease-out',
+        display: 'flex',
+        alignItems: 'center',
+        gap: compact ? '6px' : '10px',
+        backgroundColor: '#5C1A1A',
+        border: '1.5px solid #F0C040',
+        borderRadius: compact ? '10px' : '14px',
+        padding: compact ? '4px 10px' : '8px 16px',
+        boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
+        transition: 'all 0.3s ease-out',
       }}
     >
-      {/* Deep shadow layer */}
       <span
         style={{
-          position: 'absolute',
-          top: '4px',
-          left: '4px',
-          fontFamily: "'Times New Roman', Georgia, serif",
-          fontWeight: 'bold',
-          fontSize: size,
-          color: '#8B4513',
+          fontFamily: "'Poppins', sans-serif",
+          fontWeight: 900,
+          fontSize: compact ? '18px' : '28px',
+          color: '#F0C040',
           lineHeight: 1,
-          opacity: 0.7,
+          letterSpacing: '0.02em',
         }}
-        aria-hidden="true"
       >
         #{rank}
       </span>
-
-      {/* Mid shadow layer */}
       <span
         style={{
-          position: 'absolute',
-          top: '2px',
-          left: '2px',
-          fontFamily: "'Times New Roman', Georgia, serif",
-          fontWeight: 'bold',
-          fontSize: size,
-          color: '#B8860B',
-          lineHeight: 1,
-          opacity: 0.85,
-        }}
-        aria-hidden="true"
-      >
-        #{rank}
-      </span>
-
-      {/* Bright face layer */}
-      <span
-        style={{
-          position: 'relative',
-          fontFamily: "'Times New Roman', Georgia, serif",
-          fontWeight: 'bold',
-          fontSize: size,
-          background: 'linear-gradient(160deg, #F0C040 0%, #D4A017 40%, #B8860B 70%, #8B4513 100%)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text',
-          lineHeight: 1,
-          textShadow: 'none',
-          filter: 'drop-shadow(0 1px 1px rgba(0,0,0,0.4))',
+          fontFamily: "'Poppins', sans-serif",
+          fontWeight: 800,
+          fontSize: compact ? '8px' : '10px',
+          color: 'rgba(245,230,200,0.8)',
+          letterSpacing: '0.18em',
+          paddingLeft: compact ? '6px' : '10px',
+          borderLeft: '1px solid rgba(240,192,64,0.4)',
         }}
       >
-        #{rank}
+        CONSENSUS
       </span>
     </div>
   );

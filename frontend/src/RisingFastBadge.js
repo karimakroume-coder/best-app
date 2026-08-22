@@ -1,5 +1,9 @@
 import React from 'react';
 
+/**
+ * RisingFastBadge — flat Brand Device pill (design pivot 2026-08-22).
+ * Bordeaux fill, thin gold outline, flat Poppins Black gold text.
+ */
 function RisingFastBadge({ visible }) {
   if (!visible) return null;
 
@@ -17,25 +21,25 @@ function RisingFastBadge({ visible }) {
           display: 'inline-flex',
           alignItems: 'center',
           gap: '6px',
-          padding: '6px 16px',
-          background: 'linear-gradient(135deg, #D4A017 0%, #B8860B 60%, #8B4513 100%)',
-          borderRadius: '20px',
-          border: '1.5px solid rgba(240,192,64,0.5)',
-          boxShadow: '0 3px 12px rgba(0,0,0,0.6), inset 0 1px 2px rgba(255,255,255,0.15), 0 0 16px rgba(240,192,64,0.15)',
+          padding: '6px 14px',
+          backgroundColor: '#5C1A1A',
+          borderRadius: '10px',
+          border: '1.5px solid #F0C040',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.4)',
         }}
       >
         <span
           style={{
-            fontFamily: "'Bebas Neue', Impact, sans-serif",
-            fontSize: '13px',
-            letterSpacing: '2px',
-            color: '#0D0800',
-            fontWeight: 'bold',
+            fontFamily: "'Poppins', sans-serif",
+            fontWeight: 900,
+            fontSize: '11px',
+            letterSpacing: '0.14em',
+            color: '#F0C040',
           }}
         >
           RISING FAST
         </span>
-        <span style={{ fontSize: '12px' }}>▲</span>
+        <span style={{ fontSize: '11px', color: '#F0C040' }}>↗</span>
       </div>
     </div>
   );
