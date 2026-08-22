@@ -61,18 +61,19 @@ function MiniMedallion() {
 function RailItem({ label, value, sub, accent = GOLD }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  width: '100%', padding: '4px 0' }}>
-      <span style={{ fontFamily: DISPLAY, fontWeight: 800, color: '#8B7355', fontSize: '7px',
-                     letterSpacing: '2px', lineHeight: 1 }}>
+                  width: '100%', maxWidth: '100%', padding: '4px 0', boxSizing: 'border-box' }}>
+      <span style={{ fontFamily: DISPLAY, fontWeight: 800, color: '#8B7355', fontSize: '6px',
+                     letterSpacing: '1px', lineHeight: 1.2, textAlign: 'center' }}>
         {label}
       </span>
-      <span style={{ fontFamily: DISPLAY, fontWeight: 900, color: accent, fontSize: '22px', lineHeight: 1,
-                     letterSpacing: '1px', marginTop: '3px', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontFamily: DISPLAY, fontWeight: 900, color: accent, fontSize: '14px', lineHeight: 1.15,
+                     letterSpacing: '0', marginTop: '3px', fontVariantNumeric: 'tabular-nums',
+                     textAlign: 'center', wordBreak: 'break-word', maxWidth: '100%' }}>
         {value}
       </span>
       {sub && (
         <span style={{ fontFamily: META, fontWeight: 200, color: '#666', fontSize: '6px',
-                       letterSpacing: '1px', lineHeight: 1, marginTop: '3px', textAlign: 'center' }}>
+                       letterSpacing: '0.5px', lineHeight: 1.2, marginTop: '3px', textAlign: 'center' }}>
           {sub}
         </span>
       )}
@@ -92,14 +93,14 @@ function RightRailMetrics({ discoveryScore = 0, currentRank = null, currentVideo
 
   return (
     <div style={{
-      position: 'fixed', right: 0, top: 88, zIndex: 110, pointerEvents: 'none',
-      width: 52, display: 'flex', flexDirection: 'column', alignItems: 'center',
+      position: 'fixed', right: '8px', top: 88, zIndex: 110, pointerEvents: 'none',
+      width: 68, maxWidth: 'calc(100vw - 16px)', boxSizing: 'border-box', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
       backgroundColor: 'rgba(5,5,5,0.72)', backdropFilter: 'blur(4px)',
-      border: '1px solid #2A2110', borderRight: 'none',
-      borderLeft: '1px solid #F0C040',
-      borderRadius: '10px 0 0 10px',
-      padding: '7px 4px 7px',
-      boxShadow: '-4px 0 18px rgba(0,0,0,0.4)',
+      border: '1.5px solid #F0C040',
+      borderRadius: '12px',
+      padding: '8px 5px',
+      boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
     }}>
       <MiniMedallion />
 

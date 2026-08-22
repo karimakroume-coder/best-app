@@ -867,11 +867,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
       // Tap — reveal the dot UI, or collapse the open panel back to the dot.
       if (dotState === 'hidden') setDotState('single');
       else if (dotState === 'three') {
-        setDotState('single'); setUiOpen(false); setFlexWallOpen(false);
-        if (onUIStateChange) onUIStateChange(false);
+        setDotState('single'); setFlexWallOpen(false);
       }
     }
-  }, [markStage, currentX, currentY, navigateToCoord, dotState, resetFocusTimer, onUIStateChange]);
+  }, [markStage, currentX, currentY, navigateToCoord, dotState, resetFocusTimer]);
 
   // ── 3x3 GRID SWIPE NAV ───────────────────────────────────────────────────
   // The grid view has no useDrag binding of its own (only pinchBind for
@@ -1608,7 +1607,10 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
           {(() => {
             const isRising = risingVideos.some(r => r.video_id === currentVideo.video_id);
             const ffCount = currentVideo.fireflag_count || 0;
-            const category = currentVideo.category || currentVideo.channel_name || '';
+            // Falls back to '' (not channel_name) when the API omits category —
+            // channel_name already renders as its own creator-credit line just
+            // above this strip, so falling back here duplicated it on screen.
+            const category = currentVideo.category || '';
             return (
               <div style={{
                 position: 'relative', zIndex: 2,
@@ -1775,7 +1777,9 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
                       display:'flex', flexDirection:'column', alignItems:'flex-end', gap:'6px' }}>
           {fireflagRemaining !== null && (
             <span style={{ fontFamily:"'Poppins', sans-serif", fontWeight:800, color:'#F0C040',
-                           fontSize:'9px', letterSpacing:'2px', opacity:0.7 }}>
+                           fontSize:'9px', letterSpacing:'2px',
+                           backgroundColor:'#5C1A1A', border:'1.5px solid #F0C040',
+                           borderRadius:'8px', padding:'4px 10px' }}>
               {fireflagRemaining} FLAGS LEFT
             </span>
           )}
@@ -1859,8 +1863,11 @@ function SpatialMap({ rankings, userId, onColorAssigned, onPersonalBestAdded, on
         </button>
       )}
 
-      {/* DOT UI */}
-      {dotState !== 'hidden' && !showColorWheel && (
+      {/* MANDALA — the persistent affordance back into the UI. Always mounted
+          (not gated on dotState, which only governs the legacy dot/fireflag
+          panel and fades to 'hidden' after 3s — the mandala itself must
+          never disappear, since it's the only way to reopen the UI). */}
+      {!showColorWheel && (
         <div style={{ position:'absolute', bottom:'120px', right:'24px', zIndex:10 }}>
 
           <MandalaButton onClick={toggleUI} onHold={closeUI} isOpen={mandalaState === 'bloom'} />

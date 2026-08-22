@@ -1,11 +1,16 @@
 import React from 'react';
 
+// Flat Brand Device treatment (design pivot 2026-08-22): compact 28px
+// rounded-rect badges instead of oversized script glyphs — the old version
+// rendered "B" up to 52px tall per item, which spanned far enough down the
+// left edge to overlap the centered rank/title stack. Hugs the very left
+// edge and stays narrow so it can't collide with centered content.
 const MAPS = [
-  { id: 'world-best', label: 'WORLD BEST', color: '#F0C040', size: 52, active: true },
-  { id: 'best-map', label: 'BEST MAP', color: '#A8A9AD', size: 44 },
-  { id: 'my-best', label: 'MY BEST', color: '#F5E6C8', size: 40 },
-  { id: 'crew-best', label: 'CREW BEST', color: '#CD7F32', size: 36 },
-  { id: 'crown', label: 'CROWN', color: '#F0C040', size: 44, hasCrown: true },
+  { id: 'world-best', label: 'WORLD BEST' },
+  { id: 'best-map', label: 'BEST MAP' },
+  { id: 'my-best', label: 'MY BEST' },
+  { id: 'crew-best', label: 'CREW BEST' },
+  { id: 'crown', label: 'CROWN', hasCrown: true },
 ];
 
 function BNavigation({ currentMap, setCurrentMap, uiOpen }) {
@@ -14,56 +19,63 @@ function BNavigation({ currentMap, setCurrentMap, uiOpen }) {
   return (
     <div style={{
       position: 'fixed',
-      left: '16px',
+      left: '8px',
       top: '50%',
       transform: 'translateY(-50%)',
       zIndex: 150,
       display: 'flex',
       flexDirection: 'column',
-      gap: '8px',
+      gap: '10px',
       alignItems: 'center',
     }}>
-      {MAPS.map((map) => (
-        <button
-          key={map.id}
-          onClick={() => setCurrentMap(map.id)}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            padding: '2px 4px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            opacity: currentMap === map.id ? 1 : 0.35,
-            transition: 'opacity 0.3s ease',
-          }}
-        >
-          {map.hasCrown && (
-            <span style={{ fontSize: '10px', lineHeight: 1, marginBottom: '2px' }}>
-              👑
+      {MAPS.map((map) => {
+        const active = currentMap === map.id;
+        return (
+          <button
+            key={map.id}
+            onClick={() => setCurrentMap(map.id)}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '3px',
+              width: '38px',
+              opacity: active ? 1 : 0.55,
+              transition: 'opacity 0.3s ease',
+            }}
+          >
+            <div style={{
+              width: '28px', height: '28px', borderRadius: '8px',
+              backgroundColor: active ? '#F0C040' : '#5C1A1A',
+              border: '1.5px solid #F0C040',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              position: 'relative',
+            }}>
+              <span style={{
+                fontFamily: "'Poppins', sans-serif", fontWeight: 900, fontSize: '13px',
+                color: active ? '#5C1A1A' : '#F0C040', lineHeight: 1,
+              }}>
+                B
+              </span>
+              {map.hasCrown && (
+                <span style={{ position: 'absolute', top: '-7px', right: '-4px', fontSize: '9px', lineHeight: 1 }}>
+                  👑
+                </span>
+              )}
+            </div>
+            <span style={{
+              fontFamily: "'Poppins', sans-serif", fontWeight: 800, fontSize: '6px',
+              color: '#F0C040', letterSpacing: '0.06em', lineHeight: 1.1, textAlign: 'center',
+            }}>
+              {map.label}
             </span>
-          )}
-          <span style={{
-            fontFamily: 'Pacifico, cursive',
-            fontSize: `${map.size}px`,
-            color: map.color,
-            lineHeight: 1,
-          }}>
-            B
-          </span>
-          <span style={{
-            fontFamily: 'Bebas Neue, sans-serif',
-            fontSize: '8px',
-            color: map.color,
-            letterSpacing: '2px',
-            lineHeight: 1,
-            marginTop: '2px',
-          }}>
-            {map.label}
-          </span>
-        </button>
-      ))}
+          </button>
+        );
+      })}
     </div>
   );
 }
